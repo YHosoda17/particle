@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>あなたの誕生日情報</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f4f7f6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            color: #34495e;
+        }
+        input[type="date"] {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 18px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 30px;
+            text-align: left;
+            padding: 20px;
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            min-height: 100px; /* 結果表示エリアの確保 */
+        }
+        #result p {
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #e74c3c; /* 赤色で強調 */
+        }
+        .color-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>あなたの誕生日情報検索</h1>
+
+        <label for="birthdate">生年月日を入力してください:</label>
+        <input type="date" id="birthdate">
+        <button onclick="displayBirthdayInfo()">情報を表示</button>
+
+        <div id="result">
+            <p>ここに結果が表示されます。</p>
+        </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // データの定義 (例: 1月1日のみ)
+        // ----------------------------------------------------
+        const birthdayData = {
+            '1-1': { 
+                flower: 'スノードロップ', 
+                color: 'ルビーレッド', 
+                colorCode: '#E0115F', 
+                stone: 'ガーネット' 
+            },
+            // ここに他の日付のデータを追加していきます
+            // '1-2': { flower: '...'},
+            // '2-15': { flower: '...'},
+            // ...
+        };
+
+        // ----------------------------------------------------
+        // メイン処理
+        // ----------------------------------------------------
+        function displayBirthdayInfo() {
+            const dateInput = document.getElementById('birthdate').value;
+            const resultDiv = document.getElementById('result');
+
+            // 1. 入力チェック
+            if (!dateInput) {
+                resultDiv.innerHTML = '<p class="highlight">生年月日を入力してください。</p>';
+                return;
+            }
+
+            // 2. 日付を「月-日」形式に変換
+            // 例: "2024-01-01" -> "1-1"
+            const dateParts = dateInput.split('-');
+            const month = parseInt(dateParts[1], 10);
+            const day = parseInt(dateParts[2], 10);
+            const key = `${month}-${day}`;
+
+            // 3. データ検索
+            const info = birthdayData[key];
+            
+            let htmlOutput = '';
+
+            if (info) {
+                // 4. データが見つかった場合
+                htmlOutput = `
+                    <h2>${month}月${day}日の情報</h2>
+                    <p>
+                        <span class="highlight">誕生花:</span> ${info.flower}
+                    </p>
+                    <p>
+                        <span class="highlight">誕生色:</span> 
+                        <span class="color-box" style="background-color: ${info.colorCode};"></span>
+                        ${info.color} (${info.colorCode})
+                    </p>
+                    <p>
+                        <span class="highlight">誕生石:</span> ${info.stone}
+                    </p>
+                `;
+            } else {
+                // 5. データが見つからない場合
+                htmlOutput = `
+                    <p class="highlight">申し訳ありません。${month}月${day}日のデータは現在準備中です。</p>
+                `;
+            }
+
+            resultDiv.innerHTML = htmlOutput;
+        }
+    </script>
+
+</body>
+</html>

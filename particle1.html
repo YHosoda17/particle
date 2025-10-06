@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>マウス追従桜吹雪</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #333333; /* 背景色を少し暗くして桜が映えるように */
+            cursor: none;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="sakuraCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('sakuraCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        // 桜の花びらクラス
+        class SakuraPetal {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                // 初期速度（落下速度と横風）
+                this.vx = (Math.random() - 0.5) * 1.5; // 横方向の初期速度
+                this.vy = 1 + Math.random() * 1; // 落下速度
+                
+                // 花びらの色 (淡いピンク系)
+                this.hue = 330 + Math.random() * 30; // 330 (マゼンタに近いピンク) から 360 (赤) の範囲
+                this.saturation = 50 + Math.random() * 30; // 彩度
+                this.lightness = 70 + Math.random() * 10; // 明度
+                this.alpha = 0.8 + Math.random() * 0.2; // 透明度
+
+                this.life = 200 + Math.random() * 100; // 寿命を長めに
+                this.initialLife = this.life;
+
+                // 花びらのサイズ
+                this.width = 10 + Math.random() * 5; // 花びらの幅
+                this.height = 5 + Math.random() * 3; // 花びらの高さ（細長くする）
+
+                // 回転関連
+                this.angle = Math.random() * Math.PI * 2; // 初期角度
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05; // 回転速度
+                this.windInfluence = Math.random() * 0.05 + 0.01; // 風の影響度
+                this.amplitude = 5 + Math.random() * 10; // 左右の揺れの振幅
+            }
+
+            update() {
+                // 重力による落下
+                this.vy += 0.05; // 重力加速度
+                this.y += this.vy;
+
+                // 風による左右の揺れ
+                this.x += Math.sin(this.y * this.windInfluence) * this.amplitude * 0.1;
+                this.x += this.vx; // 初期速度による横移動
+
+                // 回転
+                this.angle += this.rotationSpeed;
+
+                // 寿命による透明度とサイズの減少
+                this.life--;
+                this.alpha = (this.life / this.initialLife) * (0.8 + Math.random() * 0.2); // 徐々に透明に
+                
+                // 画面外に出たらリセット（新しい花びらとして再利用）
+                if (this.y > canvas.height + this.height || this.x < -this.width || this.x > canvas.width + this.width || this.life <= 0) {
+                    this.reset();
+                }
+            }
+
+            reset() {
+                this.x = mouse.x + (Math.random() - 0.5) * 50; // マウスの近くで再生成
+                this.y = mouse.y + (Math.random() - 0.5) * 50;
+                // 画面上部からランダムに生成する場合
+                // this.x = Math.random() * canvas.width;
+                // this.y = -this.height; 
+
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = 1 + Math.random() * 1;
+                this.hue = 330 + Math.random() * 30;
+                this.saturation = 50 + Math.random() * 30;
+                this.lightness = 70 + Math.random() * 10;
+                this.alpha = 0.8 + Math.random() * 0.2;
+                this.life = 200 + Math.random() * 100;
+                this.initialLife = this.life;
+                this.width = 10 + Math.random() * 5;
+                this.height = 5 + Math.random() * 3;
+                this.angle = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+                this.windInfluence = Math.random() * 0.05 + 0.01;
+                this.amplitude = 5 + Math.random() * 10;
+            }
+
+            draw() {
+                ctx.save(); // 現在の描画状態を保存
+
+                ctx.translate(this.x, this.y); // 花びらの中心を移動
+                ctx.rotate(this.angle); // 回転
+
+                ctx.beginPath();
+                ctx.fillStyle = `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.alpha})`;
+
+                // 桜の花びらのような形を描画 (今回は簡略化して楕円)
+                // ctx.ellipse(0, 0, this.width / 2, this.height / 2, 0, 0, Math.PI * 2);
+
+                // より簡単な四角形で回転を表現
+                ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
+                
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.restore(); // 描画状態を元に戻す
+            }
+        }
+
+        let petals = [];
+        const maxPetals = 150; // 画面上の最大花びら数
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // キャンバス全体を少しだけ透明な黒で塗りつぶし、軌跡（尾）を作成
+            // 花びらの場合は、前のフレームの残像を消すためにほぼ完全にクリア
+            ctx.fillStyle = 'rgba(51, 51, 51, 0.3)'; // 背景色に合わせて少し透明度を持たせる
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // マウスの位置に新しい花びらを生成
+            if (petals.length < maxPetals) {
+                for (let i = 0; i < 3; i++) { // 一度に生成する花びらの数を調整
+                    petals.push(new SakuraPetal(mouse.x + (Math.random() - 0.5) * 20, mouse.y + (Math.random() - 0.5) * 20));
+                }
+            }
+            
+            for (let i = 0; i < petals.length; i++) {
+                petals[i].update();
+                petals[i].draw();
+            }
+        }
+
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レトロアーケードシューティング</title>
+    
+    <style>
+        /* 全体のフォント、背景 */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1a1a2e; /* 深い青紫 */
+            color: #e9c46a; /* レトロなゴールド */
+            /* font-family: 'Press Start 2P', monospace; */ /* レトロゲームフォントを想定 */
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            padding-top: 20px;
+        }
+        
+        /* 仮想のアーケード筐体フレーム */
+        .arcade-frame {
+            background-color: #3b3b54; /* 筐体の本体色 */
+            border: 10px solid #23233a;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        /* ゲーム画面（キャンバス）のスタイル */
+        canvas {
+            border: 5px solid #ff0055; /* 派手なネオンレッドの枠 */
+            box-shadow: 0 0 15px #ff0055; /* ネオン効果 */
+            background-color: #000;
+            cursor: default; /* カーソルはデフォルトに戻す */
+            image-rendering: pixelated; /* ピクセルをくっきりさせる */
+        }
+
+        /* 情報表示エリア */
+        #info {
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-shadow: 0 0 5px #000;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 1px solid #e9c46a;
+            display: flex;
+            justify-content: space-around;
+            width: 580px; /* キャンバスの幅に合わせる */
+        }
+        #info span {
+            color: #fff; /* 数値は明るく */
+            margin-right: 15px;
+        }
+        
+        /* 称号表示エリア */
+        #titleDisplay {
+            font-size: 1.1em;
+            color: #f1c40f; /* 派手な黄色 */
+            margin: 15px 0;
+            text-shadow: 0 0 8px #f1c40f;
+            min-height: 25px; /* 表示エリアを確保 */
+        }
+
+        /* スタートボタンのスタイル */
+        #startButton {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            background-color: #00ffaa; /* ネオングリーン */
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            box-shadow: 0 0 10px #00ffaa; /* ネオンシャドウ */
+        }
+        #startButton:hover:not(:disabled) {
+            background-color: #00cc88;
+            box-shadow: 0 0 15px #00ffaa;
+        }
+        #startButton:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="arcade-frame">
+        <button id="startButton">ゲームスタート！</button>
+
+        <div id="titleDisplay">ゲームをスタートしてください</div>
+
+        <div id="info">
+            <span>スコア: <span id="score">0</span></span>
+            <span>HP: <span id="hp">3</span></span>
+            <span>残り時間: <span id="timeLeft">15</span>秒</span>
+        </div>
+        
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        
+        <p style="text-align: center; font-size: 0.7em; margin-top: 10px;">操作: 矢印キー or WASDで移動、スペースキーで発射</p>
+    </div>
+
+    <script>
+        // HTML要素の取得
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const hpElement = document.getElementById('hp');
+        const timeLeftElement = document.getElementById('timeLeft');
+        const startButton = document.getElementById('startButton');
+        const titleDisplay = document.getElementById('titleDisplay'); // 称号表示エリア
+
+        // ----------------------------------------------------
+        // ゲーム変数と初期設定
+        // ----------------------------------------------------
+        let gameLoopId;
+        let timerId;
+        let score = 0;
+        let isGameRunning = false;
+        let timeLeft = 15;
+        
+        // プレイヤー設定
+        const player = { x: 50, y: canvas.height / 2, width: 20, height: 20, speed: 5, color: 'blue', hp: 3, canShoot: false, isCoolingDown: false };
+
+        // 配列管理
+        let bullets = [];
+        let enemies = [];
+        
+        // キー入力管理
+        let keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            // スペースキーが押されたら、ゲーム実行中かつクールダウン中でなければ弾を撃つ
+            if (isGameRunning && e.code === 'Space' && !player.isCoolingDown) {
+                shootBullet();
+            }
+        });
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        // 敵の出現間隔とカウンター
+        let enemySpawnInterval = 120; // 120フレームに1回
+        let spawnCounter = 0;
+
+        // ----------------------------------------------------
+        // 称号データ
+        // ----------------------------------------------------
+        const titles = [
+            { score: 300, name: " 宇宙の支配者" },
+            { score: 200, name: " 銀河の英雄" },
+            { score: 150, name: " エースパイロット" },
+            { score: 100, name: " 熟練シューター" },
+            { score: 50, name: " 見習いガンナー" },
+            { score: 0, name: "--- 未挑戦 ---" }
+        ];
+
+        // ----------------------------------------------------
+        // 称号を更新する関数
+        // ----------------------------------------------------
+        function updateTitleDisplay(currentScore) {
+            let bestTitle = titles[titles.length - 1]; // 未挑戦を初期値に
+
+            // スコアが高い順にチェックし、該当する最高の称号を見つける
+            for (const title of titles) {
+                if (currentScore >= title.score) {
+                    bestTitle = title;
+                    break;
+                }
+            }
+            
+            if (isGameRunning) {
+                 titleDisplay.textContent = `現在のスコア: ${currentScore}点`;
+            } else if (currentScore > 0 && timeLeft <= 0) {
+                 // ゲーム終了時のみ称号を表示
+                 titleDisplay.textContent = `称号: ${bestTitle.name}`;
+            } else if (player.hp <= 0) {
+                 // HPが0でゲームオーバーした場合はスコアを表示
+                 titleDisplay.textContent = `称号: ${bestTitle.name} (スコア: ${currentScore}点)`;
+            } else {
+                 titleDisplay.textContent = 'ゲーム

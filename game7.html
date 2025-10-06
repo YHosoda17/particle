@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>色で合わせる神経衰弱</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        #gameBoard {
+            display: grid;
+            /* 4x4のグリッドを作成 */
+            grid-template-columns: repeat(4, 80px);
+            grid-template-rows: repeat(4, 80px);
+            gap: 10px;
+            margin: 20px auto;
+            width: fit-content;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .tile {
+            width: 80px;
+            height: 80px;
+            /* 常にこの色が裏面 */
+            background-color: #3498db; 
+            border: 3px solid #2980b9;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0; /* 文字（色の名前）は見せない */
+            color: white;
+            user-select: none;
+            transition: transform 0.6s, background-color 0.3s;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+        
+        /* タイルの裏面（中身）のスタイル */
+        .tile::after {
+            content: ''; 
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 3px;
+            /* transform: rotateY(180deg); はJavaScriptで制御 */
+            backface-visibility: hidden; 
+        }
+
+        /* タイルがめくられたとき */
+        .tile.flipped {
+            /* 裏返った後はクリック不可 */
+            pointer-events: none; 
+            /* タイルを裏返すアニメーション */
+            transform: rotateY(180deg);
+        }
+
+        /* ペアが揃ったとき */
+        .tile.matched {
+            /* 揃った後の最終的な見た目 */
+            opacity: 0.5;
+            border: 3px solid #27ae60;
+            pointer-events: none;
+        }
+        
+        /* **************************************************** */
+        /* タイルの中身の色をデータ属性に基づいて動的に設定 */
+        /* **************************************************** */
+        
+        .tile[data-color-code]::after {
+            /* JavaScriptで設定されたdata-color-codeに基づいて色を設定 */
+            background-color: var(--tile-color, black); 
+            transform: rotateY(180deg); /* 裏返ったときに表を向くようにする */
+        }
+        
+        /* メッセージ表示とリセットボタンは変更なし */
+        #message {
+            margin-top: 20px;
+            font-size: 24px;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        #resetButton {
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>色で合わせるペア探しゲーム</h1>
+    <div id="gameBoard">
+        </div>
+    <div id="message"></div>
+    <button id="resetButton">ゲームをリセット</button>
+
+    <script>
+        const gameBoard = document.getElementById('gameBoard');
+        const messageDisplay = document.getElementById('message');
+        const resetButton = document.getElementById('resetButton');
+        
+        // 変更点: 使用するタイルの中身を色とカラーコードのペアにする
+        const tilesContent = [
+            { name: 'Red', code: '#E74C3C' },
+            { name: 'Blue', code: '#3498DB' },
+            { name: 'Green', code: '#2ECC71' },
+            { name: 'Yellow', code: '#F1C40F' },
+            { name: 'Purple', code: '#9B59B6' },
+            { name: 'Orange', code: '#E67E22' },
+            { name: 'Teal', code: '#1ABC9C' },
+            { name: 'Pink', code: '#FF69B4' }
+        ];
+        
+        // 全体のタイルデータ (ペアにするため2回ずつ格納)
+        let gameTiles = [...tilesContent, ...tilesContent];
+        
+        let flippedTiles = []; // 現在めくられているタイルを格納
+        let lockBoard = false; // 2枚めくっている間の操作ロックフラグ
+
+        // ----------------------------------------------------
+        // 1. ゲームボードの準備
+        // ----------------------------------------------------
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function initializeGame() {
+            gameBoard.innerHTML = '';
+            messageDisplay.textContent = '';
+            
+            // タイルをシャッフル
+            gameTiles = shuffle([...tilesContent, ...tilesContent]);
+            
+            // タイル要素を生成してボードに追加
+            gameTiles.forEach((data, index) => {
+                const tile = document.createElement('div');
+                tile.classList.add('tile');
+                
+                // 変更点: データ属性に色の名前とカラーコードを保存
+                tile.setAttribute('data-color-name', data.

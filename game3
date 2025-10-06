@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シンプルなシューティングゲーム</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding-top: 20px;
+        }
+        canvas {
+            border: 2px solid #fff;
+            background-color: #000;
+        }
+        #info {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="info">
+        スコア: <span id="score">0</span> | HP: <span id="hp">3</span>
+        <p>操作: 矢印キー or WASDで移動、スペースキーで発射</p>
+    </div>
+    
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        // HTML要素の取得
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const hpElement = document.getElementById('hp');
+
+        // ----------------------------------------------------
+        // ゲーム定数と変数
+        // ----------------------------------------------------
+        let gameLoopId;
+        let score = 0;
+        let isGameOver = false;
+
+        // プレイヤー設定
+        const player = {
+            x: 50,
+            y: canvas.height / 2,
+            width: 20,
+            height: 20,
+            speed: 5,
+            color: 'blue',
+            hp: 3
+        };
+
+        // 配列管理
+        let bullets = []; // プレイヤーの弾
+        let enemies = []; // 敵
+        let enemyBullets = []; // 敵の弾
+
+        // キー入力管理
+        let keys = {};
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        // 敵の出現間隔
+        let enemySpawnInterval = 100; // 100フレームに1回
+        let spawnCounter = 0;
+
+        // ----------------------------------------------------
+        // 描画関数
+        // ----------------------------------------------------
+
+        function drawRect(obj) {
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
+
+        // ----------------------------------------------------
+        // オブジェクトの更新
+        // ----------------------------------------------------
+
+        function updatePlayer() {
+            // プレイヤーの移動
+            if ((keys['ArrowUp'] || keys['KeyW']) && player.y > 0) {
+                player.y -= player.speed;
+            }
+            if ((keys['ArrowDown'] || keys['KeyS']) && player.y < canvas.height - player.height) {
+                player.y += player.speed;
+            }
+            if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 0) {
+                player.x -= player.speed;
+            }
+            if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width / 2 - player.width) { // 画面左半分のみ移動可能
+                player.x += player.speed;
+            }
+
+            // 弾の発射 (スペースキー)
+            if (keys['Space']) {
+                // 発射間隔を設ける (簡略化のため、キーダウン時にフラグを使用)
+                if (!player.canShoot) {
+                    // 弾を生成
+                    bullets.push({
+                        x: player.x + player.width,
+                        y: player.y + player.height / 2 - 2,
+                        width: 10,
+                        height: 4,
+                        speed: 7,
+                        color: 'white'
+                    });
+                    player.canShoot = true; // 発射ロック
+                    // 短い時間後にロック解除
+                    setTimeout(() => player.canShoot = false, 150); // 150msのクールダウン
+                }
+            } else {
+                // キーを離したらすぐに次の発射準備
+                player.canShoot = false;
+            }
+        }
+
+        function updateBullets() {
+            // プレイヤーの弾の移動と画面外判定
+            bullets.forEach((bullet, index) => {
+                bullet.x += bullet.speed;
+                if (bullet.x > canvas.width) {
+                    bullets.splice(index, 1); // 画面外に出たら削除
+                }
+            });
+
+            // 敵の弾の移動と画面外判定
+            enemyBullets.forEach((bullet, index) => {
+                bullet.x -= bullet.speed;
+                if (bullet.x < 0) {
+                    enemyBullets.splice(index, 1);
+                }
+            });
+        }
+
+        function spawnEnemy() {
+            spawnCounter++;
+            if (spawnCounter >= enemySpawnInterval)

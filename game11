@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レトロアーケードシューティング</title>
+    
+    <style>
+        /* 全体のフォント、背景 */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #1a1a2e; /* 深い青紫 */
+            color: #e9c46a; /* レトロなゴールド */
+            /* Google Fontsから 'Press Start 2P' を読み込むとさらにレトロ感が出ます */
+            /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
+            font-family: Arial, sans-serif; /* Fallback */
+            margin: 0;
+            padding-top: 20px;
+        }
+        
+        /* 仮想のアーケード筐体フレーム */
+        .arcade-frame {
+            background-color: #3b3b54; /* 筐体の本体色 */
+            border: 10px solid #23233a;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: fit-content; /* 内容に合わせて幅を調整 */
+            max-width: 680px; /* キャンバスの幅+パディングに合わせる */
+        }
+
+        /* ゲーム画面（キャンバス）のスタイル */
+        canvas {
+            border: 5px solid #ff0055; /* 派手なネオンレッドの枠 */
+            box-shadow: 0 0 15px #ff0055; /* ネオン効果 */
+            background-color: #000;
+            cursor: default; /* カーソルはデフォルトに戻す */
+            image-rendering: pixelated; /* ピクセルをくっきりさせる（対応ブラウザのみ） */
+        }
+
+        /* 情報表示エリア */
+        #info {
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-shadow: 0 0 5px #000;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 1px solid #e9c46a;
+            display: flex;
+            justify-content: space-around;
+            width: 580px; /* キャンバスの幅に合わせる */
+        }
+        #info span {
+            color: #fff; /* 数値は明るく */
+        }
+        
+        /* 称号表示エリア */
+        #titleDisplay {
+            font-size: 1.1em;
+            color: #f1c40f; /* 派手な黄色 */
+            margin: 15px 0;
+            text-shadow: 0 0 8px #f1c40f;
+            min-height: 25px; /* 表示エリアを確保 */
+            text-align: center;
+        }
+
+        /* スタートボタンのスタイル */
+        #startButton {
+            padding: 10px 20px;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            background-color: #00ffaa; /* ネオングリーン */
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            box-shadow: 0 0 10px #00ffaa; /* ネオンシャドウ */
+        }
+        #startButton:hover:not(:disabled) {
+            background-color: #00cc88;
+            box-shadow: 0 0 15px #00ffaa;
+        }
+        #startButton:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #fff;
+        }
+
+        /* 操作説明 */
+        .controls-hint {
+            text-align: center; 
+            font-size: 0.7em; 
+            margin-top: 10px;
+            color: #e9c46a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="arcade-frame">
+        <button id="startButton">ゲームスタート！</button>
+
+        <div id="titleDisplay">ゲームをスタートしてください</div>
+
+        <div id="info">
+            <span>スコア: <span id="score">0</span></span>
+            <span>HP: <span id="hp">3</span></span>
+            <span>残り時間: <span id="timeLeft">15</span>秒</span>
+        </div>
+        
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        
+        <p class="controls-hint">操作: 矢印キー or WASDで移動、スペースキーで発射</p>
+    </div>
+
+    <script>
+        // HTML要素の取得
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const hpElement = document.getElementById('hp');
+        const timeLeftElement = document.getElementById('timeLeft');
+        const startButton = document.getElementById('startButton');
+        const titleDisplay = document.getElementById('titleDisplay'); 
+
+        // ----------------------------------------------------
+        // ゲーム変数と初期設定
+        // ----------------------------------------------------
+        let gameLoopId;
+        let timerId;
+        let score = 0;
+        let isGameRunning = false;
+        let timeLeft = 15;
+        
+        // プレイヤー設定
+        const player = { x: 50, y: canvas.height / 2, width: 20, height: 20, speed: 5, color: 'blue', hp: 3, isCoolingDown: false };
+
+        // 配列管理
+        let bullets = [];
+        let enemies = [];
+        
+        // キー入力管理
+        let keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (isGameRunning && e.code === 'Space' && !player.isCoolingDown) {
+                shootBullet();
+            }
+        });
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        let enemySpawnInterval = 120;
+        let spawnCounter = 0;
+
+        // ----------------------------------------------------
+        // 称号データ
+        // ----------------------------------------------------
+        const titles = [
+            { score: 300, name: " 宇宙の支配者" },
+            { score: 200, name: " 銀河の英雄" },
+            { score: 150, name: " エースパイロット" },
+            { score: 100, name: " 熟練シューター" },
+            { score: 50, name: " 見習いガンナー" },
+            { score: 0, name: "--- 未挑戦 ---" } // 0点以下またはゲーム未開始時のデフォルト
+        ];
+
+        // ----------------------------------------------------
+        // 称号を更新する関数
+        // ----------------------------------------------------
+        function updateTitleDisplay(currentScore) {
+            let bestTitle = titles[titles.length - 1]; // 未挑戦を初期値に
+
+            // スコアが高い順にチェックし、該当する最高の称号を見つける
+            for (const title of titles) {
+                if (currentScore >= title.score) {
+                    bestTitle = title;
+                    break;
+                }
+            }
+            
+            if (isGameRunning) {
+                 titleDisplay.textContent = `現在のスコア: ${currentScore}点`;
+            } else if (player.hp <= 0 || timeLeft <= 0) { // ゲームオーバーまたはタイムアップ時
+                 titleDisplay.textContent = `称号: ${bestTitle.name} (スコア: ${currentScore}点)`;
+            } else { // ゲーム開始前
+                 titleDisplay.textContent = 'ゲームをスタートしてください';
+            }
+        }
+        
+        // ----------------------------------------------------
+        // ゲーム制御関数
+        // ----------------------------------------------------
+
+        function resetGame() {
+            // ゲーム変数を初期化
+            score = 0;
+            player.hp = 3;
+            timeLeft = 15;
+            player.x = 50;
+            player.y = canvas.height / 2;
+            bullets = [];
+            enemies = [];
+            keys = {}; // キー状態もリセット
+            enemySpawnInterval = 120;
+            spawnCounter = 0;
+
+            // 表示をリセット
+            scoreElement.textContent = score;
+            hpElement.textContent = player.hp;
+            timeLeftElement.textContent = timeLeft;
+            
+            // キャンバスをクリアし、待機メッセージを表示
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#e9c46a'; // レトロなゴールド
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PRESS START', canvas.width / 2, canvas.height / 2);
+
+            startButton.disabled = false;
+            updateTitleDisplay(0); // 称号表示も初期状態に
+        }
+
+        function startGame() {
+            if (isGameRunning) return; // 既にゲームが実行中なら何もしない
+            
+            isGameRunning = true;
+            startButton.disabled = true; // ゲーム中はボタンを無効化
+            
+            // カウントダウンタイマー開始
+            timerId = setInterval(countdown, 1000);
+
+            // ゲームループ開始
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function countdown() {
+            timeLeft--;
+            timeLeftElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                endGame('TIME UP! ');
+            }
+        }
+
+        function endGame(message) {
+            if (!isGameRunning) return; // 既に終了している場合は何もしない
+
+            isGameRunning = false;
+            clearInterval(timerId); // タイマー停止
+            cancelAnimationFrame(gameLoopId); // ゲームループ停止
+            
+            // 称号の最終表示
+            updateTitleDisplay(score); 
+
+            // ゲームオーバー画面表示
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'; // 半透明の黒
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ff0055'; // ネオンレッド
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 20);
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#e9c46a'; // レトロなゴールド
+            ctx.fillText(`最終スコア: ${score}点`, canvas.width / 2, canvas.height / 2 + 30);
+
+            // 3秒後にリセット状態に戻す
+            setTimeout(resetGame, 3000); 
+        }
+
+        // ----------------------------------------------------
+        // ゲーム要素関数
+        // ----------------------------------------------------
+
+        function drawRect(obj) {
+            ctx.fillStyle = obj.color;
+            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        }
+        
+        function shootBullet() {
+             bullets.push({
+                x: player.x + player.width,
+                y: player.y + player.height / 2 - 2,
+                width: 10,
+                height: 4,
+                speed: 7,
+                color: 'white'
+            });
+            
+            // 弾のクールダウン処理
+            player.isCoolingDown = true;
+            setTimeout(() => { player.isCoolingDown = false; }, 150); 
+        }
+
+        function spawnEnemy() {
+            spawnCounter++;
+            if (spawnCounter >= enemySpawnInterval) {
+                enemies.push({
+                    x: canvas.width,
+                    y: Math.random() * (canvas.height - 30) + 15, // ランダムなY座標
+                    width: 30,
+                    height: 15,
+                    speed: Math.random() * 1.5 + 1.5, // 1.5～3.0の速度
+                    color: 'red'
+                });
+
+                spawnCounter = 0;
+                // 難易度を上げる (出現間隔を徐々に短くする)
+                if (enemySpawnInterval > 30) {
+                    enemySpawnInterval -= 2; 
+                }
+            }
+        }
+        
+        function checkCollision(objA, objB) {
+            return objA.x < objB.x + objB.width &&
+                   objA.x + objA.width > objB.x &&
+                   objA.y < objB.y + objB.height &&
+                   objA.y + objA.height > objB.y;
+        }
+
+        // ----------------------------------------------------
+        // 更新ループ
+        // ----------------------------------------------------
+
+        function update() {
+            // プレイヤーの移動
+            if (keys['ArrowUp'] || keys['KeyW']) player.y = Math.max(0, player.y - player.speed);
+            if (keys['ArrowDown'] || keys['KeyS']) player.y = Math.min(canvas.height - player.height, player.y + player.speed);
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x = Math.max(0, player.x - player.speed);
+            if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(canvas.width / 2 - player.width, player.x + player.speed);
+
+            // 弾と敵の移動
+            bullets.forEach(b => b.x += b.speed);
+            enemies.forEach(e => e.x -= e.speed);
+
+            // 衝突判定と要素のフィルタリング (新しい配列を作成する方式で堅牢化)
+            
+            // プレイヤー vs 敵の体当たり
+            enemies = enemies.filter(enemy => {
+                if (checkCollision(player, enemy)) {
+                    player.hp--;
+                    hpElement.textContent = player.hp;
+                    return false; // 衝突した敵は消滅
+                }
+                return enemy.x > -enemy.width; // 画面外に出た敵は消滅
+            });
+
+            // 弾 vs 敵
+            let newEnemies = [];
+            let newBullets = [];
+            
+            bullets.forEach(bullet => {
+                let bulletHit = false;
+                enemies.forEach(enemy => {
+                    if (checkCollision(bullet, enemy)) {
+                        bulletHit = true; // 弾がヒットした
+                        score += 10;
+                        scoreElement.textContent = score;
+                    } else {
+                        newEnemies.push(enemy); // ヒットしなかった敵は残す
+                    }
+                });
+                // ヒットしなかった弾のみを次の配列に格納
+                if (!bulletHit) {
+                    newBullets.push(bullet);
+                }
+                // enemies配列を、ヒットしなかった敵のみで再構築
+                enemies = newEnemies;
+                newEnemies = []; // 次のbulletのためにクリア
+            });
+            
+            // 画面外に出た弾を除外
+            bullets = newBullets.filter(b => b.x < canvas.width);
+
+
+            // HPチェック
+            if (player.hp <= 0) {
+                endGame('GAME OVER ');
+            }
+        }
+
+        // ----------------------------------------------------
+        // メインゲームループ
+        // ----------------------------------------------------
+
+        function gameLoop() {
+            if (!isGameRunning) return; 
+
+            // 1. 画面をクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 更新と生成
+            update();
+            spawnEnemy();
+
+            // 3. 描画
+            drawRect(player);
+            bullets.forEach(drawRect);
+            enemies.forEach(drawRect);
+
+            // 4. 称号の更新と次のフレームを要求
+            updateTitleDisplay(score);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // ----------------------------------------------------
+        // 初期化とリスナー設定
+        // ----------------------------------------------------
+        
+        startButton.addEventListener('click', startGame);
+        resetGame(); // ページロード時にリセット状態にして待機
+    </script>
+
+</body>
+</html>

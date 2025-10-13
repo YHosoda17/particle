@@ -139,7 +139,10 @@
         let timeLeft = 15;
         
         // プレイヤー設定
-        const player = { x: 50, y: canvas.height / 2, width: 20, height: 20, speed: 5, color: 'blue', hp: 3, isCoolingDown: false };
+        // widthとheightは当たり判定用。描画はdrawPlayer関数で行うため、見た目のサイズとは異なる場合がある。
+        const player = { x: 50, y: canvas.height / 2, width: 20, height: 20, speed: 5, color: '#00FFFF', hp: 3, isCoolingDown: false }; // シアン
+        const playerCollisionWidth = 15; // 当たり判定用の幅
+        const playerCollisionHeight = 15; // 当たり判定用の高さ
 
         // 配列管理
         let bullets = [];
@@ -247,6 +250,7 @@
         function startGame() {
             if (isGameRunning) return;
             
+            resetGame(); // ゲーム開始前に状態を完全にリセット
             isGameRunning = true;
             startButton.disabled = true;
             
@@ -303,19 +307,201 @@
         // ゲーム要素関数
         // ----------------------------------------------------
 
-        function drawRect(obj) {
-            ctx.fillStyle = obj.color;
-            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        // 自機を描画する関数
+        function drawPlayer(p) {
+            ctx.fillStyle = p.color;
+
+            ctx.beginPath();
+            // メインボディ
+            ctx.moveTo(p.x, p.y - p.height / 2); // 上の点
+            ctx.lineTo(p.x + p.width, p.y);      // 右の点
+            ctx.lineTo(p.x, p.y + p.height / 2); // 下の点
+            ctx.closePath();
+            ctx.fill();
+
+            // エンジン部分 (後ろの三角形)
+            ctx.fillStyle = '#FFA500'; // オレンジ色
+            ctx.beginPath();
+            ctx.moveTo(p.x - 5, p.y - p.height / 4);
+            ctx.lineTo(p.x, p.y);
+            ctx.lineTo(p.x - 5, p.y + p.height / 4);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 敵機を描画する関数
+        function drawEnemy(e) {
+            ctx.fillStyle = '#FF4500'; // オレンジレッド
+
+            ctx.beginPath();
+            // メインボディ (逆向きの三角形)
+            ctx.moveTo(e.x + e.width, e.y - e.height / 2); // 右上の点
+            ctx.lineTo(e.x, e.y);                          // 左の点
+            ctx.lineTo(e.x + e.width, e.y + e.height / 2); // 右下の点
+            ctx.closePath();
+            ctx.fill();
+
+            // 敵の翼 (小さい三角形)
+            ctx.fillStyle = '#8B0000'; // ダークレッド
+            ctx.beginPath();
+            ctx.moveTo(e.x + e.width / 2, e.y - e.height / 2 - 5);
+            ctx.lineTo(e.x + e.width / 2 + 5, e.y - e.height / 2);
+            ctx.lineTo(e.x + e.width / 2 - 5, e.y - e.height / 2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(e.x + e.width / 2, e.y + e.height / 2 + 5);
+            ctx.lineTo(e.x + e.width / 2 + 5, e.y + e.height / 2);
+            ctx.lineTo(e.x + e.width / 2 - 5, e.y + e.height / 2);
+            ctx.closePath();
+            ctx.fill();
         }
         
         function shootBullet() {
             bullets.push({
                 x: player.x + player.width,
-                y: player.y + player.height / 2 - 2,
+                y: player.y, // プレイヤーの中心から発射
                 width: 10,
                 height: 4,
                 speed: 7,
                 color: 'white'
             });
             
-            //
+            // 弾のクールダウン処理
+            player.isCoolingDown = true;
+            setTimeout(() => { player.isCoolingDown = false; }, 150); 
+        }
+
+        function spawnEnemy() {
+            spawnCounter++;
+            if (spawnCounter >= enemySpawnInterval) {
+                enemies.push({
+                    x: canvas.width,
+                    y: Math.random() * (canvas.height - 30) + 15, // ランダムなY座標
+                    width: 30, // 当たり判定の幅
+                    height: 15, // 当たり判定の高さ
+                    speed: Math.random() * 1.5 + 1.5, // 1.5～3.0の速度
+                    color: 'red' // 描画関数が色を上書きするのでここでは仮の色
+                });
+
+                spawnCounter = 0;
+                // 難易度を上げる (出現間隔を徐々に短くする)
+                if (enemySpawnInterval > 30) {
+                    enemySpawnInterval -= 2; 
+                }
+            }
+        }
+        
+        function checkCollision(objA, objB) {
+            // 自機と敵の当たり判定は、それぞれの実体のサイズを使う
+            // プレイヤーの当たり判定はplayerCollisionWidth/Heightを使用
+            let aX = objA === player ? player.x : objA.x;
+            let aY = objA === player ? player.y - playerCollisionHeight / 2 : objA.y;
+            let aW = objA === player ? playerCollisionWidth : objA.width;
+            let aH = objA === player ? playerCollisionHeight : objA.height;
+
+            // 弾と敵の当たり判定はそのまま
+            let bX = objB.x;
+            let bY = objB.y - objB.height / 2; // 敵は中心Yを基準に高さを持つと仮定
+            let bW = objB.width;
+            let bH = objB.height;
+            
+            // 弾とプレイヤーの当たり判定
+            if (objA.color === 'white' && objB === player) { // 弾とプレイヤーの衝突は考慮しない（敵の弾がないため）
+                return false;
+            }
+
+            return aX < bX + bW &&
+                   aX + aW > bX &&
+                   aY < bY + bH &&
+                   aY + aH > bY;
+        }
+
+        // ----------------------------------------------------
+        // 更新ループ
+        // ----------------------------------------------------
+
+        function update() {
+            // プレイヤーの移動
+            const maxRight = canvas.width - player.width; 
+            if (keys['ArrowUp'] || keys['KeyW']) player.y = Math.max(0, player.y - player.speed);
+            if (keys['ArrowDown'] || keys['KeyS']) player.y = Math.min(canvas.height - player.height, player.y + player.speed);
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x = Math.max(0, player.x - player.speed);
+            if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(maxRight, player.x + player.speed);
+
+            // 弾と敵の移動
+            bullets.forEach(b => b.x += b.speed);
+            enemies.forEach(e => e.x -= e.speed);
+
+            // 衝突判定と要素のフィルタリング
+            
+            // プレイヤー vs 敵の体当たり
+            enemies = enemies.filter(enemy => {
+                if (checkCollision(player, enemy)) {
+                    updateHp(-1); 
+                    return false; 
+                }
+                return enemy.x > -enemy.width; 
+            });
+
+            // 弾 vs 敵
+            let newBullets = [];
+            
+            bullets.forEach(bullet => {
+                let bulletHit = false;
+                enemies = enemies.filter(enemy => {
+                    if (checkCollision(bullet, enemy)) {
+                        bulletHit = true; 
+                        updateScore(10); 
+                        return false; 
+                    }
+                    return true; 
+                });
+                
+                // ヒットしなかった弾のみを次の配列に格納
+                if (!bulletHit && bullet.x < canvas.width) {
+                    newBullets.push(bullet);
+                }
+            });
+            
+            bullets = newBullets;
+        }
+
+        // ----------------------------------------------------
+        // メインゲームループ
+        // ----------------------------------------------------
+
+        function gameLoop() {
+            if (!isGameRunning) return; 
+
+            // 1. 画面をクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 更新と生成
+            update();
+            spawnEnemy();
+
+            // 3. 描画
+            drawPlayer(player); // プレイヤーは専用関数で描画
+            bullets.forEach(b => { // 弾はシンプルな四角で描画
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y - b.height / 2, b.width, b.height);
+            });
+            enemies.forEach(drawEnemy); // 敵は専用関数で描画
+
+            // 4. 称号の更新と次のフレームを要求 (ゲーム中はスコア表示)
+            updateTitleDisplay(score);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // ----------------------------------------------------
+        // 初期化とリスナー設定
+        // ----------------------------------------------------
+        
+        startButton.addEventListener('click', startGame);
+        resetGame(); // ページロード時にリセット状態にして待機
+    </script>
+
+</body>
+</html>

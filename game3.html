@@ -24,11 +24,9 @@
         /* メインコンテナ：称号一覧とゲーム画面を横並びにする */
         .main-content {
             display: flex;
-            /* 中央寄せを維持し、アイテム間の間隔を調整 */
             justify-content: center; 
             gap: 40px; 
             margin-bottom: 20px;
-            /* 2つの要素を格納できる最大幅に調整 */
             max-width: 1000px; 
             width: 100%;
         }
@@ -72,14 +70,14 @@
             color: #f1c40f; 
         }
 
-        /* 仮想のアーケード筐体フレーム (中央) - 強調 */
+        /* 仮想のアーケード筐体フレーム (中央) - 強調 (青色に修正済み) */
         .arcade-frame {
             background-color: #3b3b54; 
-            /* 枠をさらに太く、色をより目立つように変更 */
-            border: 20px solid #f1c40f; 
+            /* 枠の色を青色に変更 */
+            border: 20px solid #00BFFF; 
             border-radius: 15px;
-            /* 強烈なネオンのような影に変更 */
-            box-shadow: 0 0 50px 10px rgba(255, 255, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3);
+            /* 強烈なネオンのような影を青色ベースに変更 */
+            box-shadow: 0 0 50px 10px rgba(0, 191, 255, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3);
             padding: 20px;
             width: 640px; 
             flex-shrink: 0; 
@@ -88,7 +86,6 @@
         /* ゲーム画面（キャンバス）のスタイル */
         canvas {
             border: 5px solid #ff0055; 
-            /* シャドウを明るくして目立たせる */
             box-shadow: 0 0 25px 5px #ff66aa; 
             background-color: #000;
             cursor: default; 
@@ -408,8 +405,6 @@
             startButton.disabled = false;
             difficultySelect.disabled = false;
             updateTitleDisplay(0);
-            
-            // ランキング削除に伴い、この部分の処理は不要になりました
         }
 
         function startGame() {
@@ -454,8 +449,6 @@
             
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // ランキング登録処理を削除
 
             ctx.fillStyle = '#ff0055';
             ctx.font = '40px Arial';

@@ -6,7 +6,7 @@
     <title>レトロアーケードシューティング</title>
     
     <style>
-        /* 全体のフォント、背景 */
+        /* 全体のフォント、背景、スクロール防止 */
         body {
             display: flex;
             flex-direction: column;
@@ -15,33 +15,37 @@
             color: #e9c46a; 
             font-family: Arial, sans-serif; 
             margin: 0;
-            padding-top: 20px;
+            padding: 20px 0; /* padding-topを上下のpaddingに変更 */
+            /* スクロール防止の追加 */
+            height: 100vh; 
+            overflow: hidden;
+            box-sizing: border-box; 
         }
         
         /* メインコンテナ：称号一覧、ゲーム画面、ランキングを横並びにする */
         .main-content {
             display: flex;
-            gap: 20px; 
+            /* 要素間の隙間を均等に広げて、中央に寄せる */
+            justify-content: center; 
+            gap: 40px; /* 隙間を広げ、中央配置に見せる */
             margin-bottom: 20px;
-            /* 3つの要素を格納できる最大幅に調整 */
-            max-width: 1200px; 
+            /* 3つの要素を格納できる十分な最大幅を設定 */
+            max-width: 1400px; 
+            width: 100%;
         }
 
-        /* 称号一覧エリア */
+        /* 称号一覧エリア (左端に寄せるため、flexの配置を利用) */
         #titleListContainer {
             width: 250px;
             background-color: #23233a;
-            /* 色を落ち着いた青に変更 */
             border: 2px solid #3498db;
             border-radius: 10px;
             padding: 15px;
-            /* シャドウも調整 */
             box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
             height: fit-content; 
         }
 
         #titleListContainer h3 {
-            /* 見出しの色を調整 */
             color: #3498db;
             margin-top: 0;
             border-bottom: 1px solid #3498db;
@@ -69,7 +73,7 @@
             color: #f1c40f; 
         }
 
-        /* 仮想のアーケード筐体フレーム */
+        /* 仮想のアーケード筐体フレーム (中央) */
         .arcade-frame {
             background-color: #3b3b54; 
             border: 10px solid #23233a;
@@ -77,7 +81,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
             padding: 20px;
             width: 640px; 
-            flex-shrink: 0; /* 幅を固定 */
+            flex-shrink: 0; 
         }
 
         /* ゲーム画面（キャンバス）のスタイル */
@@ -130,7 +134,7 @@
         
         /* 難易度ラベルとセレクトボックスを近づけるための調整 */
         .controls-container label {
-            margin-right: 5px; /* ラベルとセレクトボックスの間の隙間を調整 */
+            margin-right: 5px; 
             color: #00FFFF;
             font-size: 1em;
             white-space: nowrap;
@@ -159,18 +163,18 @@
             box-shadow: 0 0 10px #00ffaa; 
         }
         
-        /* ランキングテーブル (右側に表示するためにメインコンテナの子要素にする) */
+        /* ランキングテーブル (右側) */
         #rankingContainer {
             width: 250px;
             text-align: center;
             background-color: #23233a;
             border-radius: 10px;
             padding: 15px;
-            /* 色を落ち着いた青に変更 */
             border: 2px solid #3498db;
             box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
             height: fit-content; 
-            display: none; /* 初期状態で非表示 */
+            /* 初期状態で表示を維持するために display: none を削除 */
+            /* JavaScript側でランキングデータがない場合のみ非表示制御 */
         }
         #rankingContainer h3 {
             color: #3498db;
@@ -183,7 +187,7 @@
             border-collapse: collapse;
         }
         #rankingTable th, #rankingTable td {
-            padding: 8px 3px; /* 狭い幅に合わせる */
+            padding: 8px 3px; 
             border-bottom: 1px solid #3b3b54;
             color: #fff;
             font-size: 0.8em;
@@ -459,7 +463,8 @@
             difficultySelect.disabled = false;
             updateTitleDisplay(0);
 
-            rankingContainer.style.display = 'none';
+            // リセット時にもランキングを表示 (drawRankingTableがDOMを表示する)
+            drawRankingTable(); 
         }
 
         function startGame() {
@@ -572,7 +577,6 @@
                 
                 saveRanking(ranking);
                 drawRankingTable();
-                rankingContainer.style.display = 'block'; 
             }
         }
 
@@ -606,6 +610,7 @@
                 const cell = row.insertCell();
                 cell.colSpan = 4;
                 cell.textContent = "まだスコアが登録されていません。";
+                rankingContainer.style.display = 'block'; // テーブルが空でもコンテナ自体は表示
                 return;
             }
 
@@ -616,6 +621,8 @@
                 row.insertCell().textContent = record.name;
                 row.insertCell().textContent = record.score;
             });
+
+            rankingContainer.style.display = 'block';
         }
 
 

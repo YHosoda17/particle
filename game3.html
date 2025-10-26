@@ -21,17 +21,19 @@
             box-sizing: border-box; 
         }
         
-        /* メインコンテナ：称号一覧、ゲーム画面、ランキングを横並びにする */
+        /* メインコンテナ：称号一覧とゲーム画面を横並びにする */
         .main-content {
             display: flex;
+            /* 中央寄せを維持し、アイテム間の間隔を調整 */
             justify-content: center; 
             gap: 40px; 
             margin-bottom: 20px;
-            max-width: 1400px; 
+            /* 2つの要素を格納できる最大幅に調整 */
+            max-width: 1000px; 
             width: 100%;
         }
 
-        /* 称号一覧エリア (左端) */
+        /* 称号一覧エリア (左側) */
         #titleListContainer {
             width: 250px;
             background-color: #23233a;
@@ -73,16 +75,17 @@
         /* 仮想のアーケード筐体フレーム (中央) - 強調 */
         .arcade-frame {
             background-color: #3b3b54; 
-            /* 枠を太く明るく */
-            border: 15px solid #4a5d7c;
+            /* 枠をさらに太く、色をより目立つように変更 */
+            border: 20px solid #f1c40f; 
             border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.2);
+            /* 強烈なネオンのような影に変更 */
+            box-shadow: 0 0 50px 10px rgba(255, 255, 0, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3);
             padding: 20px;
             width: 640px; 
             flex-shrink: 0; 
         }
 
-        /* ゲーム画面（キャンバス）のスタイル - 強調 */
+        /* ゲーム画面（キャンバス）のスタイル */
         canvas {
             border: 5px solid #ff0055; 
             /* シャドウを明るくして目立たせる */
@@ -161,43 +164,6 @@
             transition: background-color 0.1s, box-shadow 0.1s;
             box-shadow: 0 0 10px #00ffaa; 
         }
-        
-        /* ランキングテーブル (右側) */
-        #rankingContainer {
-            width: 250px;
-            text-align: center;
-            background-color: #23233a;
-            border-radius: 10px;
-            padding: 15px;
-            border: 2px solid #3498db;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
-            height: fit-content; 
-        }
-        #rankingContainer h3 {
-            color: #3498db;
-            margin-top: 0;
-            margin-bottom: 15px;
-            font-size: 1.5em;
-        }
-        #rankingTable {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        #rankingTable th, #rankingTable td {
-            padding: 8px 3px; 
-            border-bottom: 1px solid #3b3b54;
-            color: #fff;
-            font-size: 0.8em;
-        }
-        #rankingTable th {
-            background-color: #4a5d7c;
-            color: #e9c46a;
-            text-transform: uppercase;
-        }
-        #rankingTable tr:nth-child(1) td {
-            color: #f1c40f; 
-            font-weight: bold;
-        }
     </style>
 </head>
 <body>
@@ -236,22 +202,7 @@
             <p class="controls-hint">操作: 矢印キー or WASDで移動、スペースキーで発射</p>
         </div>
         
-        <div id="rankingContainer">
-            <h3>🏆 ランキング (LOCAL)</h3>
-            <table id="rankingTable">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>難易度</th>
-                        <th>名前</th>
-                        <th>スコア</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
         </div>
-    </div>
 
     <script>
         // HTML要素の取得
@@ -263,8 +214,6 @@
         const startButton = document.getElementById('startButton');
         const titleDisplay = document.getElementById('titleDisplay'); 
         const difficultySelect = document.getElementById('difficultySelect');
-        const rankingContainer = document.getElementById('rankingContainer');
-        const rankingTableBody = document.querySelector('#rankingTable tbody');
         const titleListElement = document.getElementById('titleList');
 
         // ----------------------------------------------------
@@ -459,8 +408,8 @@
             startButton.disabled = false;
             difficultySelect.disabled = false;
             updateTitleDisplay(0);
-
-            drawRankingTable(); 
+            
+            // ランキング削除に伴い、この部分の処理は不要になりました
         }
 
         function startGame() {
@@ -506,7 +455,7 @@
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            promptForNameAndSaveScore(finalScore);
+            // ランキング登録処理を削除
 
             ctx.fillStyle = '#ff0055';
             ctx.font = '40px Arial';
@@ -525,133 +474,6 @@
 
             setTimeout(resetGame, 5000);
         }
-
-        // ----------------------------------------------------
-        // ランキング処理関数
-        // ----------------------------------------------------
-        const RANKING_KEY = 'retroShooterRanking';
-        const PLAYER_NAME_KEY = 'lastPlayerName';
-        const MIN_SCORE_FOR_RANKING = 10; // ランキング登録のための最低スコア
-
-        function loadRanking() {
-            const rankingData = localStorage.getItem(RANKING_KEY);
-            return rankingData ? JSON.parse(rankingData) : [];
-        }
-
-        function saveRanking(ranking) {
-            localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
-        }
-
-        function loadPlayerName() {
-            return localStorage.getItem(PLAYER_NAME_KEY) || "名無し";
-        }
-
-        function savePlayerName(name) {
-            localStorage.setItem(PLAYER_NAME_KEY, name);
-        }
-
-        function promptForNameAndSaveScore(finalScore) {
-            // スコアが低すぎる場合は登録をスキップ
-            if (finalScore < MIN_SCORE_FOR_RANKING) {
-                 return;
-            }
-
-            const defaultName = loadPlayerName();
-            let playerName = null;
-            let inputValid = false;
-            
-            // ユーザーネームの文字数チェックループ
-            while (!inputValid) {
-                let promptMessage = "スコアを登録します！名前を入力してください（10文字まで）:";
-                
-                // 初回以外の警告メッセージを追加
-                if (playerName !== null) {
-                    promptMessage = "ユーザーネームは10文字以内にしてください:\n" + promptMessage;
-                }
-                
-                playerName = prompt(promptMessage, defaultName);
-
-                if (playerName === null) {
-                    // キャンセルが押された場合
-                    return; 
-                }
-                
-                // 入力チェック: 10文字以下であること
-                if (playerName.trim().length <= 10) {
-                    inputValid = true;
-                } else {
-                    // 10文字を超える場合、ループ継続
-                    // alert("ユーザーネームは10文字以内にしてください。"); // prompt内で警告を表示するため不要
-                }
-            }
-            
-            // 登録処理
-            if (playerName) {
-                const name = playerName.trim().substring(0, 10) || "名無し";
-                savePlayerName(name); 
-
-                const newRecord = {
-                    name: name,
-                    score: finalScore,
-                    difficulty: currentDifficulty,
-                    time: new Date().toISOString()
-                };
-
-                let ranking = loadRanking();
-                ranking.push(newRecord);
-                
-                ranking.sort((a, b) => b.score - a.score); 
-                
-                saveRanking(ranking);
-                drawRankingTable();
-            }
-        }
-
-        function drawRankingTable() {
-            const ranking = loadRanking();
-            rankingTableBody.innerHTML = ''; 
-
-            const groupedRanking = {
-                easy: [], normal: [], hard: [], 'super-hard': []
-            };
-
-            ranking.forEach(record => {
-                if (groupedRanking[record.difficulty]) {
-                    groupedRanking[record.difficulty].push(record);
-                }
-            });
-
-            let allTimeBest = [];
-            
-            ['super-hard', 'hard', 'normal', 'easy'].forEach(difficulty => {
-                groupedRanking[difficulty].sort((a, b) => b.score - a.score);
-                groupedRanking[difficulty].slice(0, 3).forEach(record => {
-                    allTimeBest.push(record);
-                });
-            });
-
-            allTimeBest.sort((a, b) => b.score - a.score);
-            
-            if (allTimeBest.length === 0) {
-                const row = rankingTableBody.insertRow();
-                const cell = row.insertCell();
-                cell.colSpan = 4;
-                cell.textContent = "まだスコアが登録されていません。";
-                rankingContainer.style.display = 'block'; 
-                return;
-            }
-
-            allTimeBest.slice(0, 10).forEach((record, index) => {
-                const row = rankingTableBody.insertRow();
-                row.insertCell().textContent = index + 1;
-                row.insertCell().textContent = record.difficulty.toUpperCase();
-                row.insertCell().textContent = record.name;
-                row.insertCell().textContent = record.score;
-            });
-
-            rankingContainer.style.display = 'block';
-        }
-
 
         // ----------------------------------------------------
         // 描画関数 (自機、敵、弾)

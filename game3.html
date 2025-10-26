@@ -18,30 +18,33 @@
             padding-top: 20px;
         }
         
-        /* メインコンテナ：称号一覧とゲーム画面を横並びにするため */
+        /* メインコンテナ：称号一覧、ゲーム画面、ランキングを横並びにする */
         .main-content {
             display: flex;
             gap: 20px; 
             margin-bottom: 20px;
-            /* 画面サイズに合わせて調整 */
-            max-width: 900px; 
+            /* 3つの要素を格納できる最大幅に調整 */
+            max-width: 1200px; 
         }
 
         /* 称号一覧エリア */
         #titleListContainer {
             width: 250px;
             background-color: #23233a;
-            border: 2px solid #00FFFF;
+            /* 色を落ち着いた青に変更 */
+            border: 2px solid #3498db;
             border-radius: 10px;
             padding: 15px;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+            /* シャドウも調整 */
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
             height: fit-content; 
         }
 
         #titleListContainer h3 {
-            color: #00FFFF;
+            /* 見出しの色を調整 */
+            color: #3498db;
             margin-top: 0;
-            border-bottom: 1px solid #00FFFF;
+            border-bottom: 1px solid #3498db;
             padding-bottom: 5px;
             margin-bottom: 10px;
             font-size: 1.2em;
@@ -73,8 +76,8 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
             padding: 20px;
-            /* width指定を削除し、内部要素に合わせる */
             width: 640px; 
+            flex-shrink: 0; /* 幅を固定 */
         }
 
         /* ゲーム画面（キャンバス）のスタイル */
@@ -97,7 +100,6 @@
             border: 1px solid #e9c46a;
             display: flex;
             justify-content: space-around;
-            /* キャンバスの幅に合わせる */
             width: 600px; 
         }
         #info > span {
@@ -106,21 +108,6 @@
             align-items: center;
         }
         
-        /* HP表示エリア（ハートマーク用） */
-        #hpDisplay {
-            font-size: 1.5em; 
-            color: #ff4500; 
-            margin-left: 5px;
-            min-width: 130px; 
-        }
-        
-        /* 残り時間表示 */
-        #timeLeftDisplay {
-            font-size: 1.2em; 
-            color: #00FF00; 
-            font-weight: bold;
-        }
-
         /* 称号表示エリア (ゲーム上部の帯) */
         #titleDisplay {
             font-size: 1.1em;
@@ -136,9 +123,17 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            width: 600px; /* キャンバスの幅に合わせる */
+            width: 600px; 
             max-width: 600px;
             margin-bottom: 20px;
+        }
+        
+        /* 難易度ラベルとセレクトボックスを近づけるための調整 */
+        .controls-container label {
+            margin-right: 5px; /* ラベルとセレクトボックスの間の隙間を調整 */
+            color: #00FFFF;
+            font-size: 1em;
+            white-space: nowrap;
         }
 
         /* 難易度選択のスタイル */
@@ -163,40 +158,22 @@
             transition: background-color 0.1s, box-shadow 0.1s;
             box-shadow: 0 0 10px #00ffaa; 
         }
-        #startButton:hover:not(:disabled) {
-            background-color: #00cc88;
-            box-shadow: 0 0 15px #00ffaa;
-        }
-        #startButton:disabled {
-            background-color: #7f8c8d;
-            cursor: not-allowed;
-            box-shadow: none;
-            color: #fff;
-        }
-
-        /* 操作説明 */
-        .controls-hint {
-            text-align: center; 
-            font-size: 0.7em; 
-            margin-top: 10px;
-            color: #e9c46a;
-            width: 600px; /* キャンバスの幅に合わせる */
-        }
-
-        /* ランキングテーブル */
+        
+        /* ランキングテーブル (右側に表示するためにメインコンテナの子要素にする) */
         #rankingContainer {
-            margin-top: 30px;
-            width: 600px;
+            width: 250px;
             text-align: center;
             background-color: #23233a;
             border-radius: 10px;
             padding: 15px;
-            border: 2px solid #00FFFF;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
-            display: none; 
+            /* 色を落ち着いた青に変更 */
+            border: 2px solid #3498db;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+            height: fit-content; 
+            display: none; /* 初期状態で非表示 */
         }
         #rankingContainer h3 {
-            color: #00FFFF;
+            color: #3498db;
             margin-top: 0;
             margin-bottom: 15px;
             font-size: 1.5em;
@@ -206,10 +183,10 @@
             border-collapse: collapse;
         }
         #rankingTable th, #rankingTable td {
-            padding: 8px;
+            padding: 8px 3px; /* 狭い幅に合わせる */
             border-bottom: 1px solid #3b3b54;
             color: #fff;
-            font-size: 0.9em;
+            font-size: 0.8em;
         }
         #rankingTable th {
             background-color: #4a5d7c;
@@ -233,13 +210,15 @@
 
         <div class="arcade-frame">
             <div class="controls-container">
-                <label for="difficultySelect" style="color: #00FFFF; font-size: 1em;">難易度:</label>
-                <select id="difficultySelect">
-                    <option value="easy">EASY</option>
-                    <option value="normal" selected>NORMAL</option>
-                    <option value="hard">HARD</option>
-                    <option value="super-hard">SUPER HARD</option>
-                </select>
+                <div>
+                    <label for="difficultySelect">難易度:</label>
+                    <select id="difficultySelect">
+                        <option value="easy">EASY</option>
+                        <option value="normal" selected>NORMAL</option>
+                        <option value="hard">HARD</option>
+                        <option value="super-hard">SUPER HARD</option>
+                    </select>
+                </div>
                 <button id="startButton">ゲームスタート！</button>
             </div>
 
@@ -255,22 +234,22 @@
             
             <p class="controls-hint">操作: 矢印キー or WASDで移動、スペースキーで発射</p>
         </div>
-    </div>
-
-    <div id="rankingContainer">
-        <h3>🏆 ランキング (LOCAL)</h3>
-        <table id="rankingTable">
-            <thead>
-                <tr>
-                    <th>順位</th>
-                    <th>難易度</th>
-                    <th>名前</th>
-                    <th>スコア</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+        
+        <div id="rankingContainer">
+            <h3>🏆 ランキング (LOCAL)</h3>
+            <table id="rankingTable">
+                <thead>
+                    <tr>
+                        <th>順位</th>
+                        <th>難易度</th>
+                        <th>名前</th>
+                        <th>スコア</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
@@ -327,7 +306,7 @@
         let spawnCounter = 0;
 
         // ----------------------------------------------------
-        // 称号データ (修正済み)
+        // 称号データ
         // ----------------------------------------------------
         const titles = {
             easy: [
@@ -433,7 +412,6 @@
                 titleListElement.appendChild(li);
             });
             
-            // 難易度ヘッダーの更新
             document.querySelector('#titleListContainer h3').textContent = `🎮 称号一覧 (難易度: ${difficultyName})`;
         }
 
@@ -466,10 +444,8 @@
             enemies = [];
             keys = {};
 
-            // キャンバスをクリア
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 初期化時に、スコアとHP表示を更新
             updateHpDisplay();
             updateScoreDisplay(score); 
             timeLeftDisplayElement.textContent = timeLeft;
@@ -483,7 +459,6 @@
             difficultySelect.disabled = false;
             updateTitleDisplay(0);
 
-            // リセット時、ランキングは非表示
             rankingContainer.style.display = 'none';
         }
 
@@ -492,13 +467,10 @@
             
             const selectedDifficulty = difficultySelect.value;
             
-            // 難易度設定前にリセットを実行し、描画と変数を初期化
             resetGame();
             
-            // 選択された難易度を適用
             applyDifficulty(selectedDifficulty);
             
-            // スコア表示を現在の難易度に合わせて更新
             updateScoreDisplay(score);
             
             isGameRunning = true;
@@ -530,14 +502,11 @@
             
             const finalScore = score;
             
-            // 描画が完了した後で、画面全体を暗くするオーバーレイを描画
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // ランキングにスコアを登録
             promptForNameAndSaveScore(finalScore);
 
-            // ゲームオーバー画面表示
             ctx.fillStyle = '#ff0055';
             ctx.font = '40px Arial';
             ctx.textAlign = 'center';
@@ -551,7 +520,6 @@
             ctx.fillStyle = '#e9c46a';
             ctx.fillText(`最終スコア: ${finalScore}点`, canvas.width / 2, canvas.height / 2 + 60);
 
-            // タイトル表示エリアを最終結果に更新
             updateTitleDisplay(finalScore);
 
             setTimeout(resetGame, 5000);
@@ -892,7 +860,6 @@
         
         startButton.addEventListener('click', startGame);
         
-        // 難易度変更時に称号リストとスコア表示を更新
         difficultySelect.addEventListener('change', () => {
             applyDifficulty(difficultySelect.value);
             updateScoreDisplay(score); 

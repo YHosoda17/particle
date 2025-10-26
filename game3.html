@@ -273,23 +273,23 @@
         // ----------------------------------------------------
         const titles = {
             easy: [
-                { score: 150, name: "イージー・マスター" }, // 修正
-                { score: 100, name: "イージー・ベテラン" }, // 修正
+                { score: 150, name: "イージー・マスター" }, 
+                { score: 100, name: "イージー・ベテラン" }, 
                 { score: 10, name: "イージー・ルーキー" },
             ],
             normal: [
-                { score: 250, name: "銀河の英雄" }, // 修正
+                { score: 250, name: "銀河の英雄" }, 
                 { score: 150, name: "エースパイロット" },
                 { score: 10, name: "熟練シューター" },
             ],
             hard: [
-                { score: 350, name: "宇宙の支配者" }, // 修正
+                { score: 350, name: "宇宙の支配者" }, 
                 { score: 250, name: "絶対王者" },
                 { score: 10, name: "見習いガンナー" },
             ],
             'super-hard': [
-                { score: 450, name: "時空の覇者" }, // 修正
-                { score: 350, name: "神速の狩人" }, // 修正
+                { score: 450, name: "時空の覇者" }, 
+                { score: 350, name: "神速の狩人" }, 
                 { score: 10, name: "挑戦者" },
             ]
         };
@@ -313,37 +313,34 @@
 
         function applyDifficulty(level) {
             currentDifficulty = level;
-            player.hp = 5; 
-            timeLeft = 30; 
+            // HPと時間はresetGameで初期化されるので、ここでは難易度変数を更新する
             
             switch (level) {
                 case 'easy':
                     enemySpawnInterval = 180;
                     enemySpeedMultiplier = 0.6;
                     enemyShotInterval = 240;
-                    maxTitleScore = 150; // 修正
+                    maxTitleScore = 150; 
                     break;
                 case 'normal':
                     enemySpawnInterval = 120;
                     enemySpeedMultiplier = 1.0;
                     enemyShotInterval = 180;
-                    maxTitleScore = 250; // 修正
+                    maxTitleScore = 250; 
                     break;
                 case 'hard':
                     enemySpawnInterval = 80;
                     enemySpeedMultiplier = 1.5;
                     enemyShotInterval = 120;
-                    maxTitleScore = 350; // 修正
+                    maxTitleScore = 350; 
                     break;
                 case 'super-hard':
                     enemySpawnInterval = 60;
                     enemySpeedMultiplier = 2.0;
                     enemyShotInterval = 90;
-                    maxTitleScore = 450; // 修正
+                    maxTitleScore = 450; 
                     break;
             }
-            updateHpDisplay();
-            timeLeftDisplayElement.textContent = timeLeft;
         }
 
         function updateScoreDisplay(currentScore) {
@@ -385,15 +382,18 @@
             score = 0;
             player.x = 50;
             player.y = canvas.height / 2;
+            player.hp = 5; // HPをリセット
+            timeLeft = 30; // 時間をリセット
             bullets = [];
             enemyBullets = [];
             enemies = [];
             keys = {};
 
-            // 初期難易度のスコア表示でリセット
-            const initialDifficulty = difficultySelect.value;
-            applyDifficulty(initialDifficulty); 
-            updateScoreDisplay(score);
+            // 初期化時に、スコアとHP表示を更新
+            updateHpDisplay();
+            updateScoreDisplay(score); 
+            timeLeftDisplayElement.textContent = timeLeft;
+
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#e9c46a';
@@ -413,8 +413,15 @@
             if (isGameRunning) return;
             
             const selectedDifficulty = difficultySelect.value;
-            applyDifficulty(selectedDifficulty);
+            
+            // 修正ポイント: 難易度設定の前にリセットを実行し、描画と変数を初期化
             resetGame();
+            
+            // 選択された難易度を適用
+            applyDifficulty(selectedDifficulty);
+            
+            // スコア表示を現在の難易度のM点中に更新
+            updateScoreDisplay(score);
             
             isGameRunning = true;
             startButton.disabled = true;
@@ -671,4 +678,158 @@
                     color: 'red'
                 };
 
-                if
+                if (currentDifficulty === 'super-hard') {
+                    newEnemy.vy = (Math.random() - 0.5) * 1.5; 
+                }
+
+                enemies.push(newEnemy);
+                spawnCounter = 0;
+                if (enemySpawnInterval > 30) {
+                    enemySpawnInterval -= 1; 
+                }
+            }
+        }
+        
+        function checkCollision(objA, objB) {
+            let aX, aY, aW, aH;
+            
+            if (objA === player) {
+                aX = player.x + 10; 
+                aY = player.y - playerCollisionHeight / 2;
+                aW = playerCollisionWidth;
+                aH = playerCollisionHeight;
+            } else {
+                aX = objA.x;
+                aY = objA.y - objA.height / 2;
+                aW = objA.width;
+                aH = objA.height;
+            }
+            
+            let bX = objB.x;
+            let bY = objB.y - objB.height / 2;
+            let bW = objB.width;
+            let bH = objB.height;
+
+            return aX < bX + bW && aX + aW > bX && aY < bY + bH && aY + aH > bY;
+        }
+
+        function update() {
+            const playerHalfHeight = player.height / 2;
+            const maxRight = canvas.width - player.width; 
+            if (keys['ArrowUp'] || keys['KeyW']) player.y = Math.max(playerHalfHeight, player.y - player.speed); 
+            if (keys['ArrowDown'] || keys['KeyS']) player.y = Math.min(canvas.height - playerHalfHeight, player.y + player.speed);
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x = Math.max(0, player.x - player.speed);
+            if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(maxRight, player.x + player.speed);
+
+            bullets.forEach(b => b.x += b.speed);
+            
+            enemies.forEach(e => {
+                e.x -= e.speed;
+                if (currentDifficulty === 'super-hard') {
+                    e.y += e.vy;
+                    const enemyHalfHeight = e.height / 2;
+                    if (e.y < enemyHalfHeight || e.y > canvas.height - enemyHalfHeight) {
+                        e.vy *= -1;
+                    }
+                }
+            });
+
+            enemyBullets.forEach(b => {
+                b.x += b.speedX;
+                b.y += b.speedY;
+            });
+
+            enemies.forEach(e => {
+                e.shootCounter++;
+                if (e.shootCounter >= enemyShotInterval) {
+                    enemyShoot(e);
+                    e.shootCounter = 0;
+                }
+            });
+
+            enemyBullets = enemyBullets.filter(bullet => {
+                if (checkCollision(bullet, player)) {
+                    updateHp(-1);
+                    return false; 
+                }
+                return bullet.x > -bullet.width && bullet.x < canvas.width && bullet.y > -bullet.height && bullet.y < canvas.height;
+            });
+
+            enemies = enemies.filter(enemy => {
+                if (checkCollision(player, enemy)) {
+                    updateHp(-1); 
+                    return false; 
+                }
+                return enemy.x > -enemy.width * 2; 
+            });
+
+            let newBullets = [];
+            bullets.forEach(bullet => {
+                let bulletHit = false;
+                enemies = enemies.filter(enemy => {
+                    if (checkCollision(bullet, enemy)) {
+                        bulletHit = true; 
+                        updateScore(10); 
+                        return false; 
+                    }
+                    return true; 
+                });
+                
+                if (!bulletHit && bullet.x < canvas.width) {
+                    newBullets.push(bullet);
+                }
+            });
+            bullets = newBullets;
+        }
+
+        function gameLoop() {
+            if (!isGameRunning) return; 
+
+            // 1. 画面をクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 更新と生成
+            update();
+            spawnEnemy();
+
+            // 3. 描画 (自機、敵、弾)
+            drawPlayer(player);
+            
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y - b.height / 2, b.width, b.height);
+            });
+            
+            enemyBullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y - b.height / 2, b.width, b.height);
+            });
+            
+            enemies.forEach(drawEnemy);
+
+            // 4. スコアと称号の更新
+            updateScoreDisplay(score);
+            updateTitleDisplay(score);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // ----------------------------------------------------
+        // 初期化とリスナー設定
+        // ----------------------------------------------------
+        
+        startButton.addEventListener('click', startGame);
+        
+        // 難易度変更時にスコア表示を即時更新
+        difficultySelect.addEventListener('change', () => {
+            // 難易度パラメータを更新し、スコア表示をリセット
+            applyDifficulty(difficultySelect.value);
+            updateScoreDisplay(score); 
+        });
+        
+        // 初期化時
+        applyDifficulty(difficultySelect.value);
+        resetGame();
+    </script>
+
+</body>
+</html>

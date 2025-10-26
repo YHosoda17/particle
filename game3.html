@@ -15,8 +15,7 @@
             color: #e9c46a; 
             font-family: Arial, sans-serif; 
             margin: 0;
-            padding: 20px 0; /* padding-topを上下のpaddingに変更 */
-            /* スクロール防止の追加 */
+            padding: 20px 0; 
             height: 100vh; 
             overflow: hidden;
             box-sizing: border-box; 
@@ -25,16 +24,14 @@
         /* メインコンテナ：称号一覧、ゲーム画面、ランキングを横並びにする */
         .main-content {
             display: flex;
-            /* 要素間の隙間を均等に広げて、中央に寄せる */
             justify-content: center; 
-            gap: 40px; /* 隙間を広げ、中央配置に見せる */
+            gap: 40px; 
             margin-bottom: 20px;
-            /* 3つの要素を格納できる十分な最大幅を設定 */
             max-width: 1400px; 
             width: 100%;
         }
 
-        /* 称号一覧エリア (左端に寄せるため、flexの配置を利用) */
+        /* 称号一覧エリア (左端) */
         #titleListContainer {
             width: 250px;
             background-color: #23233a;
@@ -73,21 +70,23 @@
             color: #f1c40f; 
         }
 
-        /* 仮想のアーケード筐体フレーム (中央) */
+        /* 仮想のアーケード筐体フレーム (中央) - 強調 */
         .arcade-frame {
             background-color: #3b3b54; 
-            border: 10px solid #23233a;
+            /* 枠を太く明るく */
+            border: 15px solid #4a5d7c;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(255, 255, 255, 0.2);
             padding: 20px;
             width: 640px; 
             flex-shrink: 0; 
         }
 
-        /* ゲーム画面（キャンバス）のスタイル */
+        /* ゲーム画面（キャンバス）のスタイル - 強調 */
         canvas {
             border: 5px solid #ff0055; 
-            box-shadow: 0 0 15px #ff0055; 
+            /* シャドウを明るくして目立たせる */
+            box-shadow: 0 0 25px 5px #ff66aa; 
             background-color: #000;
             cursor: default; 
             image-rendering: pixelated; 
@@ -173,8 +172,6 @@
             border: 2px solid #3498db;
             box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
             height: fit-content; 
-            /* 初期状態で表示を維持するために display: none を削除 */
-            /* JavaScript側でランキングデータがない場合のみ非表示制御 */
         }
         #rankingContainer h3 {
             color: #3498db;
@@ -463,7 +460,6 @@
             difficultySelect.disabled = false;
             updateTitleDisplay(0);
 
-            // リセット時にもランキングを表示 (drawRankingTableがDOMを表示する)
             drawRankingTable(); 
         }
 
@@ -535,6 +531,7 @@
         // ----------------------------------------------------
         const RANKING_KEY = 'retroShooterRanking';
         const PLAYER_NAME_KEY = 'lastPlayerName';
+        const MIN_SCORE_FOR_RANKING = 10; // ランキング登録のための最低スコア
 
         function loadRanking() {
             const rankingData = localStorage.getItem(RANKING_KEY);
@@ -554,11 +551,41 @@
         }
 
         function promptForNameAndSaveScore(finalScore) {
-            if (finalScore < 10) return; 
+            // スコアが低すぎる場合は登録をスキップ
+            if (finalScore < MIN_SCORE_FOR_RANKING) {
+                 return;
+            }
 
             const defaultName = loadPlayerName();
-            const playerName = prompt("スコアを登録します！名前を入力してください（10文字まで）:", defaultName);
+            let playerName = null;
+            let inputValid = false;
             
+            // ユーザーネームの文字数チェックループ
+            while (!inputValid) {
+                let promptMessage = "スコアを登録します！名前を入力してください（10文字まで）:";
+                
+                // 初回以外の警告メッセージを追加
+                if (playerName !== null) {
+                    promptMessage = "ユーザーネームは10文字以内にしてください:\n" + promptMessage;
+                }
+                
+                playerName = prompt(promptMessage, defaultName);
+
+                if (playerName === null) {
+                    // キャンセルが押された場合
+                    return; 
+                }
+                
+                // 入力チェック: 10文字以下であること
+                if (playerName.trim().length <= 10) {
+                    inputValid = true;
+                } else {
+                    // 10文字を超える場合、ループ継続
+                    // alert("ユーザーネームは10文字以内にしてください。"); // prompt内で警告を表示するため不要
+                }
+            }
+            
+            // 登録処理
             if (playerName) {
                 const name = playerName.trim().substring(0, 10) || "名無し";
                 savePlayerName(name); 
@@ -610,7 +637,7 @@
                 const cell = row.insertCell();
                 cell.colSpan = 4;
                 cell.textContent = "まだスコアが登録されていません。";
-                rankingContainer.style.display = 'block'; // テーブルが空でもコンテナ自体は表示
+                rankingContainer.style.display = 'block'; 
                 return;
             }
 

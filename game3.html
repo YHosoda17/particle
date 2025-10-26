@@ -3,145 +3,813 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>シンプルなシューティングゲーム</title>
+    <title>レトロアーケードシューティング</title>
+    
     <style>
+        /* 全体のフォント、背景 */
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-color: #333;
-            color: white;
-            font-family: Arial, sans-serif;
+            background-color: #1a1a2e; 
+            color: #e9c46a; 
+            font-family: Arial, sans-serif; 
             margin: 0;
             padding-top: 20px;
         }
-        canvas {
-            border: 2px solid #fff;
-            background-color: #000;
+        
+        /* 仮想のアーケード筐体フレーム */
+        .arcade-frame {
+            background-color: #3b3b54; 
+            border: 10px solid #23233a;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: fit-content; 
+            max-width: 680px; 
         }
+
+        /* ゲーム画面（キャンバス）のスタイル */
+        canvas {
+            border: 5px solid #ff0055; 
+            box-shadow: 0 0 15px #ff0055; 
+            background-color: #000;
+            cursor: default; 
+            image-rendering: pixelated; 
+        }
+
+        /* 情報表示エリア */
         #info {
             margin-bottom: 15px;
+            font-size: 0.9em;
+            text-shadow: 0 0 5px #000;
+            padding: 10px;
+            background-color: #2c3e50;
+            border-radius: 5px;
+            border: 1px solid #e9c46a;
+            display: flex;
+            justify-content: space-around;
+            width: 580px; 
+        }
+        #info > span {
+            color: #fff; 
+            display: flex;
+            align-items: center;
+        }
+        
+        /* HP表示エリア（ハートマーク用） */
+        #hpDisplay {
+            font-size: 1.5em; 
+            color: #ff4500; 
+            margin-left: 5px;
+            min-width: 130px; 
+        }
+        
+        /* 残り時間表示 */
+        #timeLeftDisplay {
+            font-size: 1.2em; 
+            color: #00FF00; 
+            font-weight: bold;
+        }
+
+        /* 称号表示エリア */
+        #titleDisplay {
+            font-size: 1.1em;
+            color: #f1c40f; 
+            margin: 15px 0;
+            text-shadow: 0 0 8px #f1c40f;
+            min-height: 25px; 
+            text-align: center;
+        }
+
+        /* スタートと難易度選択のコンテナ */
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 450px;
+            margin-bottom: 20px;
+        }
+
+        /* 難易度選択のスタイル */
+        #difficultySelect {
+            padding: 8px;
+            font-size: 1.0em;
+            background-color: #2c3e50;
+            color: #e9c46a;
+            border: 2px solid #e9c46a;
+            border-radius: 5px;
+        }
+
+        /* スタートボタンのスタイル */
+        #startButton {
+            padding: 10px 20px;
             font-size: 1.2em;
+            background-color: #00ffaa; 
+            color: #000;
+            border: 3px solid #000;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.1s, box-shadow 0.1s;
+            box-shadow: 0 0 10px #00ffaa; 
+        }
+        #startButton:hover:not(:disabled) {
+            background-color: #00cc88;
+            box-shadow: 0 0 15px #00ffaa;
+        }
+        #startButton:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #fff;
+        }
+
+        /* 操作説明 */
+        .controls-hint {
+            text-align: center; 
+            font-size: 0.7em; 
+            margin-top: 10px;
+            color: #e9c46a;
+        }
+
+        /* ランキングテーブル */
+        #rankingContainer {
+            margin-top: 30px;
+            width: 600px;
+            text-align: center;
+            background-color: #23233a;
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #00FFFF;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+        #rankingContainer h3 {
+            color: #00FFFF;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        #rankingTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #rankingTable th, #rankingTable td {
+            padding: 8px;
+            border-bottom: 1px solid #3b3b54;
+            color: #fff;
+            font-size: 0.9em;
+        }
+        #rankingTable th {
+            background-color: #4a5d7c;
+            color: #e9c46a;
+            text-transform: uppercase;
+        }
+        #rankingTable tr:nth-child(1) td {
+            color: #f1c40f; /* 1位は金色 */
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <div id="info">
-        スコア: <span id="score">0</span> | HP: <span id="hp">3</span>
-        <p>操作: 矢印キー or WASDで移動、スペースキーで発射</p>
+    <div class="arcade-frame">
+        <div class="controls-container">
+            <label for="difficultySelect" style="color: #00FFFF; font-size: 1em;">難易度:</label>
+            <select id="difficultySelect">
+                <option value="easy">EASY</option>
+                <option value="normal" selected>NORMAL</option>
+                <option value="hard">HARD</option>
+                <option value="super-hard">SUPER HARD</option>
+            </select>
+            <button id="startButton">ゲームスタート！</button>
+        </div>
+
+        <div id="titleDisplay">ゲームをスタートしてください</div>
+
+        <div id="info">
+            <span>スコア: <span id="score">0 (400点中)</span></span>
+            <span>HP: <span id="hpDisplay">❤️❤️❤️❤️❤️</span></span>
+            <span>TIME: <span id="timeLeftDisplay">30</span></span>
+        </div>
+        
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        
+        <p class="controls-hint">操作: 矢印キー or WASDで移動、スペースキーで発射</p>
     </div>
-    
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <div id="rankingContainer">
+        <h3>🏆 ランキング (LOCAL)</h3>
+        <table id="rankingTable">
+            <thead>
+                <tr>
+                    <th>順位</th>
+                    <th>難易度</th>
+                    <th>名前</th>
+                    <th>スコア</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
 
     <script>
         // HTML要素の取得
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const hpElement = document.getElementById('hp');
+        const hpDisplayElement = document.getElementById('hpDisplay');
+        const timeLeftDisplayElement = document.getElementById('timeLeftDisplay');
+        const startButton = document.getElementById('startButton');
+        const titleDisplay = document.getElementById('titleDisplay'); 
+        const difficultySelect = document.getElementById('difficultySelect');
+        const rankingTableBody = document.querySelector('#rankingTable tbody');
 
         // ----------------------------------------------------
-        // ゲーム定数と変数
+        // ゲーム変数と初期設定
         // ----------------------------------------------------
         let gameLoopId;
+        let timerId;
         let score = 0;
-        let isGameOver = false;
-
+        let isGameRunning = false;
+        let timeLeft = 30; 
+        
         // プレイヤー設定
-        const player = {
-            x: 50,
-            y: canvas.height / 2,
-            width: 20,
-            height: 20,
-            speed: 5,
-            color: 'blue',
-            hp: 3
-        };
+        const player = { x: 50, y: canvas.height / 2, width: 30, height: 30, speed: 5, color: '#00FFFF', hp: 5, isCoolingDown: false };
+        const playerCollisionWidth = 25; 
+        const playerCollisionHeight = 25;
+
+        // 難易度によって変動する変数
+        let currentDifficulty = 'normal';
+        let enemySpawnInterval = 120;
+        let enemySpeedMultiplier = 1.0;
+        let enemyShotInterval = 180;
+        let maxTitleScore = 400; // 現在の難易度の最高称号に必要なスコア
 
         // 配列管理
-        let bullets = []; // プレイヤーの弾
-        let enemies = []; // 敵
-        let enemyBullets = []; // 敵の弾
-
+        let bullets = []; 
+        let enemyBullets = []; 
+        let enemies = [];
+        
         // キー入力管理
         let keys = {};
-        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (isGameRunning && (e.code === 'Space' || e.code === 'KeyZ') && !player.isCoolingDown) {
+                shootBullet();
+                e.preventDefault();
+            }
+        });
         window.addEventListener('keyup', (e) => keys[e.code] = false);
 
-        // 敵の出現間隔
-        let enemySpawnInterval = 100; // 100フレームに1回
         let spawnCounter = 0;
 
         // ----------------------------------------------------
-        // 描画関数
+        // 称号データ
         // ----------------------------------------------------
+        const titles = {
+            easy: [
+                { score: 400, name: "イージー・マスター" },
+                { score: 250, name: "イージー・ベテラン" },
+                { score: 10, name: "イージー・ルーキー" },
+            ],
+            normal: [
+                { score: 400, name: "銀河の英雄" },
+                { score: 250, name: "エースパイロット" },
+                { score: 10, name: "熟練シューター" },
+            ],
+            hard: [
+                { score: 400, name: "宇宙の支配者" },
+                { score: 250, name: "絶対王者" },
+                { score: 10, name: "見習いガンナー" },
+            ],
+            'super-hard': [
+                { score: 600, name: "時空の覇者" },
+                { score: 450, name: "神速の狩人" },
+                { score: 10, name: "挑戦者" },
+            ]
+        };
 
-        function drawRect(obj) {
-            ctx.fillStyle = obj.color;
-            ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+        // ----------------------------------------------------
+        // HP表示と難易度設定関数
+        // ----------------------------------------------------
+        function updateHpDisplay() {
+            hpDisplayElement.textContent = '❤️'.repeat(Math.max(0, player.hp));
+            if (player.hp <= 0) {
+                hpDisplayElement.textContent = '💀';
+            }
+        }
+
+        function applyDifficulty(level) {
+            currentDifficulty = level;
+            player.hp = 5; 
+            timeLeft = 30; 
+            
+            switch (level) {
+                case 'easy':
+                    enemySpawnInterval = 180;
+                    enemySpeedMultiplier = 0.6;
+                    enemyShotInterval = 240;
+                    maxTitleScore = 400;
+                    break;
+                case 'normal':
+                    enemySpawnInterval = 120;
+                    enemySpeedMultiplier = 1.0;
+                    enemyShotInterval = 180;
+                    maxTitleScore = 400;
+                    break;
+                case 'hard':
+                    enemySpawnInterval = 80;
+                    enemySpeedMultiplier = 1.5;
+                    enemyShotInterval = 120;
+                    maxTitleScore = 400;
+                    break;
+                case 'super-hard':
+                    enemySpawnInterval = 60;
+                    enemySpeedMultiplier = 2.0;
+                    enemyShotInterval = 90;
+                    maxTitleScore = 600;
+                    break;
+            }
+            updateHpDisplay();
+            timeLeftDisplayElement.textContent = timeLeft;
         }
 
         // ----------------------------------------------------
-        // オブジェクトの更新
+        // 称号とスコア表示関数
         // ----------------------------------------------------
-
-        function updatePlayer() {
-            // プレイヤーの移動
-            if ((keys['ArrowUp'] || keys['KeyW']) && player.y > 0) {
-                player.y -= player.speed;
-            }
-            if ((keys['ArrowDown'] || keys['KeyS']) && player.y < canvas.height - player.height) {
-                player.y += player.speed;
-            }
-            if ((keys['ArrowLeft'] || keys['KeyA']) && player.x > 0) {
-                player.x -= player.speed;
-            }
-            if ((keys['ArrowRight'] || keys['KeyD']) && player.x < canvas.width / 2 - player.width) { // 画面左半分のみ移動可能
-                player.x += player.speed;
-            }
-
-            // 弾の発射 (スペースキー)
-            if (keys['Space']) {
-                // 発射間隔を設ける (簡略化のため、キーダウン時にフラグを使用)
-                if (!player.canShoot) {
-                    // 弾を生成
-                    bullets.push({
-                        x: player.x + player.width,
-                        y: player.y + player.height / 2 - 2,
-                        width: 10,
-                        height: 4,
-                        speed: 7,
-                        color: 'white'
-                    });
-                    player.canShoot = true; // 発射ロック
-                    // 短い時間後にロック解除
-                    setTimeout(() => player.canShoot = false, 150); // 150msのクールダウン
+        function getTitle(currentScore, difficulty) {
+            const difficultyTitles = titles[difficulty] || titles['normal'];
+            for (const title of difficultyTitles) {
+                if (currentScore >= title.score) {
+                    return title;
                 }
+            }
+            return difficultyTitles[difficultyTitles.length - 1];
+        }
+
+        function updateScoreDisplay(currentScore) {
+            const progress = Math.min(currentScore, maxTitleScore);
+            scoreElement.textContent = `${currentScore} (${progress}/${maxTitleScore}点中)`;
+        }
+
+        function updateTitleDisplay(currentScore) {
+            if (isGameRunning) {
+                titleDisplay.textContent = `難易度: ${currentDifficulty.toUpperCase()}`;
             } else {
-                // キーを離したらすぐに次の発射準備
-                player.canShoot = false;
+                const finalTitle = getTitle(currentScore, currentDifficulty);
+                if (currentScore >= finalTitle.score) {
+                    titleDisplay.textContent = `称号: ${finalTitle.name} (最終スコア: ${currentScore}点)`;
+                } else {
+                    titleDisplay.textContent = 'ゲームをスタートしてください';
+                }
+            }
+        }
+        
+        // ----------------------------------------------------
+        // ゲーム制御関数
+        // ----------------------------------------------------
+
+        function updateScore(amount) {
+            score += amount;
+            updateScoreDisplay(score);
+        }
+
+        function updateHp(amount) {
+            player.hp += amount;
+            updateHpDisplay();
+            if (player.hp <= 0) {
+                endGame('GAME OVER');
             }
         }
 
-        function updateBullets() {
-            // プレイヤーの弾の移動と画面外判定
-            bullets.forEach((bullet, index) => {
-                bullet.x += bullet.speed;
-                if (bullet.x > canvas.width) {
-                    bullets.splice(index, 1); // 画面外に出たら削除
+        function resetGame() {
+            score = 0;
+            player.x = 50;
+            player.y = canvas.height / 2;
+            bullets = [];
+            enemyBullets = [];
+            enemies = [];
+            keys = {};
+
+            updateScoreDisplay(score);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#e9c46a';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PRESS START', canvas.width / 2, canvas.height / 2);
+
+            startButton.disabled = false;
+            difficultySelect.disabled = false;
+            updateTitleDisplay(0);
+
+            drawRankingTable(); // リセット時にランキング表示を更新
+        }
+
+        function startGame() {
+            if (isGameRunning) return;
+            
+            const selectedDifficulty = difficultySelect.value;
+            applyDifficulty(selectedDifficulty);
+            resetGame();
+            
+            isGameRunning = true;
+            startButton.disabled = true;
+            difficultySelect.disabled = true;
+            
+            timerId = setInterval(countdown, 1000);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function countdown() {
+            timeLeft--;
+            if (timeLeft < 0) {
+                timeLeft = 0;
+            }
+            timeLeftDisplayElement.textContent = timeLeft;
+
+            if (timeLeft <= 0) {
+                endGame('TIME UP!');
+            }
+        }
+
+        function endGame(message) {
+            if (!isGameRunning) return;
+
+            isGameRunning = false;
+            clearInterval(timerId);
+            cancelAnimationFrame(gameLoopId);
+            
+            const finalScore = score;
+            
+            // 敵、弾の描画が終わった後、半透明のオーバーレイを上からかける
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // ランキングにスコアを登録
+            promptForNameAndSaveScore(finalScore);
+
+            // ゲームオーバー画面表示
+            ctx.fillStyle = '#ff0055';
+            ctx.font = '40px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(message, canvas.width / 2, canvas.height / 2 - 40);
+            
+            const finalTitle = getTitle(finalScore, currentDifficulty);
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillText(`称号: ${finalTitle.name}`, canvas.width / 2, canvas.height / 2 + 10);
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#e9c46a';
+            ctx.fillText(`最終スコア: ${finalScore}点`, canvas.width / 2, canvas.height / 2 + 60);
+
+            // タイトル表示エリアを最終結果に更新
+            updateTitleDisplay(finalScore);
+
+            setTimeout(resetGame, 5000);
+        }
+
+        // ----------------------------------------------------
+        // ランキング処理関数
+        // ----------------------------------------------------
+        const RANKING_KEY = 'retroShooterRanking';
+
+        function loadRanking() {
+            const rankingData = localStorage.getItem(RANKING_KEY);
+            return rankingData ? JSON.parse(rankingData) : [];
+        }
+
+        function saveRanking(ranking) {
+            localStorage.setItem(RANKING_KEY, JSON.stringify(ranking));
+        }
+
+        function promptForNameAndSaveScore(finalScore) {
+            if (finalScore === 0) return; 
+
+            const playerName = prompt("スコアを登録します！名前を入力してください（10文字まで）:", "名無し");
+            
+            if (playerName) {
+                const name = playerName.trim().substring(0, 10) || "名無し";
+                const newRecord = {
+                    name: name,
+                    score: finalScore,
+                    difficulty: currentDifficulty,
+                    time: new Date().toISOString()
+                };
+
+                let ranking = loadRanking();
+                ranking.push(newRecord);
+                
+                // 難易度ごとにスコアが高い順にソートし、上位10件のみ保持
+                ranking.sort((a, b) => b.score - a.score); 
+                
+                saveRanking(ranking);
+                drawRankingTable();
+            }
+        }
+
+        function drawRankingTable() {
+            const ranking = loadRanking();
+            rankingTableBody.innerHTML = ''; // テーブルをクリア
+
+            // 難易度ごとにグループ化し、スコア順にソート
+            const groupedRanking = {
+                easy: [], normal: [], hard: [], 'super-hard': []
+            };
+
+            ranking.forEach(record => {
+                if (groupedRanking[record.difficulty]) {
+                    groupedRanking[record.difficulty].push(record);
                 }
             });
 
-            // 敵の弾の移動と画面外判定
-            enemyBullets.forEach((bullet, index) => {
-                bullet.x -= bullet.speed;
-                if (bullet.x < 0) {
-                    enemyBullets.splice(index, 1);
-                }
+            // 全難易度の上位3件ずつを抽出
+            let allTimeBest = [];
+            
+            ['super-hard', 'hard', 'normal', 'easy'].forEach(difficulty => {
+                groupedRanking[difficulty].sort((a, b) => b.score - a.score);
+                groupedRanking[difficulty].slice(0, 3).forEach(record => {
+                    allTimeBest.push(record);
+                });
             });
+
+            // 最終的にスコアが高い順に並べ替え（全体ランキング風に）
+            allTimeBest.sort((a, b) => b.score - a.score);
+            
+            if (allTimeBest.length === 0) {
+                const row = rankingTableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 4;
+                cell.textContent = "まだスコアが登録されていません。";
+                return;
+            }
+
+            // ランキングに表示
+            allTimeBest.slice(0, 10).forEach((record, index) => {
+                const row = rankingTableBody.insertRow();
+                row.insertCell().textContent = index + 1;
+                row.insertCell().textContent = record.difficulty.toUpperCase();
+                row.insertCell().textContent = record.name;
+                row.insertCell().textContent = record.score;
+            });
+        }
+
+
+        // ----------------------------------------------------
+        // 描画関数 (敵・自機など、前述のコードと基本的に同じ)
+        // ----------------------------------------------------
+        
+        function drawPlayer(p) {
+            const shipColor = '#00FFFF'; 
+            const wingColor = '#33ccff'; 
+            const engineColor = '#FFA500'; 
+
+            ctx.fillStyle = shipColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y - 18);
+            ctx.lineTo(p.x + 45, p.y);
+            ctx.lineTo(p.x, p.y + 18);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = wingColor;
+            ctx.beginPath();
+            ctx.moveTo(p.x + 10, p.y - 12);
+            ctx.lineTo(p.x + 25, p.y - 12);
+            ctx.lineTo(p.x + 10, p.y - 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.moveTo(p.x + 10, p.y + 12);
+            ctx.lineTo(p.x + 25, p.y + 12);
+            ctx.lineTo(p.x + 10, p.y + 5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = engineColor;
+            ctx.fillRect(p.x - 8, p.y - 8, 8, 16);
+        }
+
+        function drawEnemy(e) {
+            const shipColor = '#FF4500'; 
+            const coreColor = '#00FF00'; 
+
+            ctx.fillStyle = shipColor;
+            ctx.beginPath();
+            ctx.moveTo(e.x + 45, e.y - 15);
+            ctx.lineTo(e.x, e.y);
+            ctx.lineTo(e.x + 45, e.y + 15);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = coreColor;
+            ctx.beginPath();
+            ctx.arc(e.x + 25, e.y, 6, 0, Math.PI * 2, true);
+            ctx.fill();
+
+            ctx.fillStyle = '#8B0000';
+            ctx.fillRect(e.x + 15, e.y - 20, 5, 5);
+            ctx.fillRect(e.x + 15, e.y + 15, 5, 5);
+        }
+
+        function enemyShoot(e) {
+            const angle = Math.atan2(player.y - e.y, player.x - e.x); 
+            const speed = 3;
+            
+            enemyBullets.push({
+                x: e.x,
+                y: e.y, 
+                width: 12,
+                height: 5,
+                speedX: Math.cos(angle) * speed,
+                speedY: Math.sin(angle) * speed,
+                color: '#FF00FF'
+            });
+        }
+        
+        function shootBullet() {
+            bullets.push({
+                x: player.x + 45, 
+                y: player.y, 
+                width: 15, 
+                height: 5,
+                speed: 7,
+                color: 'white'
+            });
+            
+            player.isCoolingDown = true;
+            setTimeout(() => { player.isCoolingDown = false; }, 150); 
         }
 
         function spawnEnemy() {
             spawnCounter++;
-            if (spawnCounter >= enemySpawnInterval)
+            if (spawnCounter >= enemySpawnInterval) {
+                const newEnemy = {
+                    x: canvas.width,
+                    y: Math.random() * (canvas.height - 60) + 30, 
+                    width: 45, 
+                    height: 30, 
+                    speed: (Math.random() * 1.5 + 1.5) * enemySpeedMultiplier,
+                    shootCounter: Math.floor(Math.random() * enemyShotInterval),
+                    color: 'red'
+                };
+
+                if (currentDifficulty === 'super-hard') {
+                    newEnemy.vy = (Math.random() - 0.5) * 1.5; 
+                }
+
+                enemies.push(newEnemy);
+                spawnCounter = 0;
+                if (enemySpawnInterval > 30) {
+                    enemySpawnInterval -= 1; 
+                }
+            }
+        }
+        
+        function checkCollision(objA, objB) {
+            let aX, aY, aW, aH;
+            
+            if (objA === player) {
+                aX = player.x + 10; 
+                aY = player.y - playerCollisionHeight / 2;
+                aW = playerCollisionWidth;
+                aH = playerCollisionHeight;
+            } else {
+                aX = objA.x;
+                aY = objA.y - objA.height / 2;
+                aW = objA.width;
+                aH = objA.height;
+            }
+            
+            let bX = objB.x;
+            let bY = objB.y - objB.height / 2;
+            let bW = objB.width;
+            let bH = objB.height;
+
+            return aX < bX + bW && aX + aW > bX && aY < bY + bH && aY + aH > bY;
+        }
+
+        // ----------------------------------------------------
+        // 更新ループとメインループ
+        // ----------------------------------------------------
+
+        function update() {
+            // プレイヤーの移動 
+            const playerHalfHeight = player.height / 2;
+            const maxRight = canvas.width - player.width; 
+            if (keys['ArrowUp'] || keys['KeyW']) player.y = Math.max(playerHalfHeight, player.y - player.speed); 
+            if (keys['ArrowDown'] || keys['KeyS']) player.y = Math.min(canvas.height - playerHalfHeight, player.y + player.speed);
+            if (keys['ArrowLeft'] || keys['KeyA']) player.x = Math.max(0, player.x - player.speed);
+            if (keys['ArrowRight'] || keys['KeyD']) player.x = Math.min(maxRight, player.x + player.speed);
+
+            // 弾と敵の移動、衝突判定... (省略)
+            bullets.forEach(b => b.x += b.speed);
+            
+            enemies.forEach(e => {
+                e.x -= e.speed;
+                if (currentDifficulty === 'super-hard') {
+                    e.y += e.vy;
+                    const enemyHalfHeight = e.height / 2;
+                    if (e.y < enemyHalfHeight || e.y > canvas.height - enemyHalfHeight) {
+                        e.vy *= -1;
+                    }
+                }
+            });
+
+            enemyBullets.forEach(b => {
+                b.x += b.speedX;
+                b.y += b.speedY;
+            });
+
+            enemies.forEach(e => {
+                e.shootCounter++;
+                if (e.shootCounter >= enemyShotInterval) {
+                    enemyShoot(e);
+                    e.shootCounter = 0;
+                }
+            });
+
+            // 衝突判定と要素のフィルタリング
+            enemyBullets = enemyBullets.filter(bullet => {
+                if (checkCollision(bullet, player)) {
+                    updateHp(-1);
+                    return false; 
+                }
+                return bullet.x > -bullet.width && bullet.x < canvas.width && bullet.y > -bullet.height && bullet.y < canvas.height;
+            });
+
+            enemies = enemies.filter(enemy => {
+                if (checkCollision(player, enemy)) {
+                    updateHp(-1); 
+                    return false; 
+                }
+                return enemy.x > -enemy.width * 2; 
+            });
+
+            let newBullets = [];
+            bullets.forEach(bullet => {
+                let bulletHit = false;
+                enemies = enemies.filter(enemy => {
+                    if (checkCollision(bullet, enemy)) {
+                        bulletHit = true; 
+                        updateScore(10); 
+                        return false; 
+                    }
+                    return true; 
+                });
+                
+                if (!bulletHit && bullet.x < canvas.width) {
+                    newBullets.push(bullet);
+                }
+            });
+            bullets = newBullets;
+        }
+
+        function gameLoop() {
+            if (!isGameRunning) return; 
+
+            // 1. 画面をクリア
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. 更新と生成
+            update();
+            spawnEnemy();
+
+            // 3. 描画 (自機、敵、弾)
+            drawPlayer(player);
+            
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y - b.height / 2, b.width, b.height);
+            });
+            
+            enemyBullets.forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y - b.height / 2, b.width, b.height);
+            });
+            
+            enemies.forEach(drawEnemy);
+
+            // 4. スコアと称号の更新
+            updateScoreDisplay(score);
+            updateTitleDisplay(score);
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // ----------------------------------------------------
+        // 初期化とリスナー設定
+        // ----------------------------------------------------
+        
+        startButton.addEventListener('click', startGame);
+        
+        applyDifficulty(difficultySelect.value);
+        resetGame();
+        drawRankingTable(); // 初期表示
+    </script>
+
+</body>
+</html>

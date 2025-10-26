@@ -11,11 +11,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            /* 垂直方向の中央寄せを追加 */
+            justify-content: center;
             background-color: #1a1a2e; 
             color: #e9c46a; 
             font-family: Arial, sans-serif; 
             margin: 0;
-            padding: 20px 0; 
+            /* 上下のpaddingを削除し、全体を中央に寄せやすくする */
+            padding: 0; 
             height: 100vh; 
             overflow: hidden;
             box-sizing: border-box; 
@@ -26,7 +29,8 @@
             display: flex;
             justify-content: center; 
             gap: 40px; 
-            margin-bottom: 20px;
+            /* 垂直方向の中央寄せのためにマージンを削除 */
+            margin-bottom: 0;
             max-width: 1000px; 
             width: 100%;
         }
@@ -70,23 +74,21 @@
             color: #f1c40f; 
         }
 
-        /* 仮想のアーケード筐体フレーム (中央) - 強調 (青色に修正済み) */
+        /* 仮想のアーケード筐体フレーム (中央) */
         .arcade-frame {
             background-color: #3b3b54; 
-            /* 枠の色を青色に変更 */
-            border: 20px solid #00BFFF; 
-            border-radius: 15px;
-            /* 強烈なネオンのような影を青色ベースに変更 */
-            box-shadow: 0 0 50px 10px rgba(0, 191, 255, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.3);
-            padding: 20px;
-            width: 640px; 
+            border: 5px solid #4a5d7c;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            width: 630px; 
             flex-shrink: 0; 
         }
 
         /* ゲーム画面（キャンバス）のスタイル */
         canvas {
-            border: 5px solid #ff0055; 
-            box-shadow: 0 0 25px 5px #ff66aa; 
+            border: 2px solid #ff0055; 
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
             background-color: #000;
             cursor: default; 
             image-rendering: pixelated; 

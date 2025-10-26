@@ -31,8 +31,8 @@
             margin-bottom: 0;
             max-width: 1000px; 
             width: 100%;
-            /* 左への移動量を-50pxに増加 */
-            transform: translateX(-50px); 
+            /* 左への移動量を-80pxに増加 */
+            transform: translateX(-80px); 
         }
 
         /* 称号一覧エリア (左側) */
@@ -255,27 +255,27 @@
         let spawnCounter = 0;
 
         // ----------------------------------------------------
-        // 称号データ (元の状態)
+        // 称号データ (難易度スコアを100, 50, 10に統一)
         // ----------------------------------------------------
         const titles = {
             easy: [
-                { score: 150, name: "イージー・マスター" }, 
-                { score: 100, name: "イージー・ベテラン" }, 
+                { score: 100, name: "イージー・マスター" }, 
+                { score: 50, name: "イージー・ベテラン" }, 
                 { score: 10, name: "イージー・ルーキー" },
             ],
             normal: [
-                { score: 250, name: "銀河の英雄" }, 
-                { score: 150, name: "エースパイロット" },
+                { score: 100, name: "銀河の英雄" }, 
+                { score: 50, name: "エースパイロット" },
                 { score: 10, name: "熟練シューター" },
             ],
             hard: [
-                { score: 350, name: "宇宙の支配者" }, 
-                { score: 250, name: "絶対王者" },
+                { score: 100, name: "宇宙の支配者" }, 
+                { score: 50, name: "絶対王者" },
                 { score: 10, name: "見習いガンナー" },
             ],
             'super-hard': [
-                { score: 450, name: "時空の覇者" }, 
-                { score: 350, name: "神速の狩人" }, 
+                { score: 100, name: "時空の覇者" }, 
+                { score: 50, name: "神速の狩人" }, 
                 { score: 10, name: "挑戦者" },
             ]
         };
@@ -305,25 +305,25 @@
                     enemySpawnInterval = 180;
                     enemySpeedMultiplier = 0.6;
                     enemyShotInterval = 240;
-                    maxTitleScore = 150; 
+                    maxTitleScore = 100; // 変更
                     break;
                 case 'normal':
                     enemySpawnInterval = 120;
                     enemySpeedMultiplier = 1.0;
                     enemyShotInterval = 180;
-                    maxTitleScore = 250; 
+                    maxTitleScore = 100; // 変更
                     break;
                 case 'hard':
                     enemySpawnInterval = 80;
                     enemySpeedMultiplier = 1.5;
                     enemyShotInterval = 120;
-                    maxTitleScore = 350; 
+                    maxTitleScore = 100; // 変更
                     break;
                 case 'super-hard':
                     enemySpawnInterval = 60;
                     enemySpeedMultiplier = 2.0;
                     enemyShotInterval = 90;
-                    maxTitleScore = 450; 
+                    maxTitleScore = 100; // 変更
                     break;
             }
             drawTitleList(currentDifficulty);

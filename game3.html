@@ -11,13 +11,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            /* 垂直方向の中央寄せを追加 */
             justify-content: center;
             background-color: #1a1a2e; 
             color: #e9c46a; 
             font-family: Arial, sans-serif; 
             margin: 0;
-            /* 上下のpaddingを削除し、全体を中央に寄せやすくする */
             padding: 0; 
             height: 100vh; 
             overflow: hidden;
@@ -27,12 +25,15 @@
         /* メインコンテナ：称号一覧とゲーム画面を横並びにする */
         .main-content {
             display: flex;
-            justify-content: center; 
+            /* 中央寄せを維持しつつ、左側にオフセットするために調整 */
+            justify-content: center;
+            align-items: flex-start; /* 称号リストとゲーム画面の上端を揃える */
             gap: 40px; 
-            /* 垂直方向の中央寄せのためにマージンを削除 */
             margin-bottom: 0;
             max-width: 1000px; 
             width: 100%;
+            /* ゲーム画面を全体的に左にずらす */
+            transform: translateX(-20px); /* 左に20px移動 */
         }
 
         /* 称号一覧エリア (左側) */
@@ -74,10 +75,11 @@
             color: #f1c40f; 
         }
 
-        /* 仮想のアーケード筐体フレーム (中央) */
+        /* 仮想のアーケード筐体フレーム (中央) - 細い水色の枠に修正 */
         .arcade-frame {
             background-color: #3b3b54; 
-            border: 5px solid #4a5d7c;
+            /* 細い水色の枠に変更 */
+            border: 2px solid #00BFFF; /* 細い水色 */
             border-radius: 10px;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
             padding: 15px;
@@ -255,7 +257,7 @@
         let spawnCounter = 0;
 
         // ----------------------------------------------------
-        // 称号データ
+        // 称号データ (元の状態に戻しました)
         // ----------------------------------------------------
         const titles = {
             easy: [

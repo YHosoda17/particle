@@ -63,8 +63,16 @@
             font-size: 1.5em; /* ハートを大きく表示 */
             color: #ff4500; /* 赤いハート */
             margin-left: 5px;
+            min-width: 130px; /* HP表示欄の幅を確保 */
         }
         
+        /* 残り時間表示の視認性向上 */
+        #timeLeftDisplay {
+            font-size: 1.2em; /* 文字を大きく */
+            color: #00FF00; /* ネオングリーン */
+            font-weight: bold;
+        }
+
         /* 称号表示エリア */
         #titleDisplay {
             font-size: 1.1em;
@@ -146,7 +154,8 @@
         <div id="info">
             <span>スコア: <span id="score">0</span></span>
             <span>HP: <span id="hpDisplay">❤️❤️❤️❤️❤️</span></span>
-            </div>
+            <span>TIME: <span id="timeLeftDisplay">30</span></span>
+        </div>
         
         <canvas id="gameCanvas" width="600" height="400"></canvas>
         
@@ -159,6 +168,7 @@
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
         const hpDisplayElement = document.getElementById('hpDisplay');
+        const timeLeftDisplayElement = document.getElementById('timeLeftDisplay'); // 新しい時間表示要素
         const startButton = document.getElementById('startButton');
         const titleDisplay = document.getElementById('titleDisplay'); 
         const difficultySelect = document.getElementById('difficultySelect');
@@ -170,7 +180,7 @@
         let timerId;
         let score = 0;
         let isGameRunning = false;
-        let timeLeft = 30; // 30秒に設定
+        let timeLeft = 30; 
         
         // プレイヤー設定
         const player = { x: 50, y: canvas.height / 2, width: 30, height: 30, speed: 5, color: '#00FFFF', hp: 5, isCoolingDown: false };
@@ -182,6 +192,7 @@
         let enemySpawnInterval = 120;
         let enemySpeedMultiplier = 1.0;
         let enemyShotInterval = 180;
+        let maxTitleScore = 400; // 現在の難易度の最高称号に必要なスコア
 
         // 配列管理
         let bullets = []; 
@@ -220,7 +231,7 @@
                 { score: 250, name: "絶対王者" },
                 { score: 10, name: "見習いガンナー" },
             ],
-            'super-hard': [ // SUPER HARDの称号を追加
+            'super-hard': [
                 { score: 600, name: "時空の覇者" },
                 { score: 450, name: "神速の狩人" },
                 { score: 10, name: "挑戦者" },
@@ -239,32 +250,37 @@
 
         function applyDifficulty(level) {
             currentDifficulty = level;
-            player.hp = 5; // 全難易度でHP5固定
-            timeLeft = 30; // 全難易度で30秒固定
+            player.hp = 5; // HP5固定
+            timeLeft = 30; // 30秒固定
             
             switch (level) {
                 case 'easy':
                     enemySpawnInterval = 180;
                     enemySpeedMultiplier = 0.6;
                     enemyShotInterval = 240;
+                    maxTitleScore = 400;
                     break;
                 case 'normal':
                     enemySpawnInterval = 120;
                     enemySpeedMultiplier = 1.0;
                     enemyShotInterval = 180;
+                    maxTitleScore = 400;
                     break;
                 case 'hard':
                     enemySpawnInterval = 80;
                     enemySpeedMultiplier = 1.5;
                     enemyShotInterval = 120;
+                    maxTitleScore = 400;
                     break;
                 case 'super-hard':
-                    enemySpawnInterval = 60; // 非常に短い
-                    enemySpeedMultiplier = 2.0; // 非常に速い
-                    enemyShotInterval = 90; // 頻繁に撃つ
+                    enemySpawnInterval = 60;
+                    enemySpeedMultiplier = 2.0;
+                    enemyShotInterval = 90;
+                    maxTitleScore = 600; // SUPER HARDの最高スコア
                     break;
             }
             updateHpDisplay();
+            timeLeftDisplayElement.textContent = timeLeft;
         }
 
         // ----------------------------------------------------
@@ -280,12 +296,17 @@
             return difficultyTitles[difficultyTitles.length - 1];
         }
 
+        function updateScoreDisplay(currentScore) {
+            const progress = Math.min(currentScore, maxTitleScore);
+            scoreElement.textContent = `${currentScore} (${progress}/${maxTitleScore}点)`;
+        }
+
         function updateTitleDisplay(currentScore) {
             if (isGameRunning) {
-                titleDisplay.textContent = `難易度: ${currentDifficulty.toUpperCase()} | スコア: ${currentScore}点`;
+                titleDisplay.textContent = `難易度: ${currentDifficulty.toUpperCase()}`;
             } else {
                 const finalTitle = getTitle(currentScore, currentDifficulty);
-                if (currentScore >= finalTitle.score) { // スコアが称号の基準点以上なら表示
+                if (currentScore >= finalTitle.score) {
                     titleDisplay.textContent = `称号: ${finalTitle.name} (最終スコア: ${currentScore}点)`;
                 } else {
                     titleDisplay.textContent = 'ゲームをスタートしてください';
@@ -299,7 +320,7 @@
 
         function updateScore(amount) {
             score += amount;
-            scoreElement.textContent = score;
+            updateScoreDisplay(score);
         }
 
         function updateHp(amount) {
@@ -319,7 +340,7 @@
             enemies = [];
             keys = {};
 
-            scoreElement.textContent = score;
+            updateScoreDisplay(score);
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = '#e9c46a';
@@ -352,6 +373,7 @@
             if (timeLeft < 0) {
                 timeLeft = 0;
             }
+            timeLeftDisplayElement.textContent = timeLeft; // INFOエリアの時間を更新
 
             if (timeLeft <= 0) {
                 endGame('TIME UP!');
@@ -400,9 +422,9 @@
             // 船体 (細長いデルタ翼)
             ctx.fillStyle = shipColor;
             ctx.beginPath();
-            ctx.moveTo(p.x, p.y - 18);   // 上端
-            ctx.lineTo(p.x + 45, p.y);   // 先端
-            ctx.lineTo(p.x, p.y + 18);   // 下端
+            ctx.moveTo(p.x, p.y - 18);
+            ctx.lineTo(p.x + 45, p.y);
+            ctx.lineTo(p.x, p.y + 18);
             ctx.closePath();
             ctx.fill();
 
@@ -435,9 +457,9 @@
             // 船体 (逆向きのデルタ翼)
             ctx.fillStyle = shipColor;
             ctx.beginPath();
-            ctx.moveTo(e.x + 45, e.y - 15); // 右上
-            ctx.lineTo(e.x, e.y);        // 左端
-            ctx.lineTo(e.x + 45, e.y + 15); // 右下
+            ctx.moveTo(e.x + 45, e.y - 15);
+            ctx.lineTo(e.x, e.y);
+            ctx.lineTo(e.x + 45, e.y + 15);
             ctx.closePath();
             ctx.fill();
 
@@ -497,8 +519,7 @@
                 };
 
                 if (currentDifficulty === 'super-hard') {
-                    // SUPER HARDのランダムムーブ用の設定
-                    newEnemy.vy = (Math.random() - 0.5) * 1.5; // ランダムな垂直速度
+                    newEnemy.vy = (Math.random() - 0.5) * 1.5; 
                 }
 
                 enemies.push(newEnemy);
@@ -540,7 +561,7 @@
         // ----------------------------------------------------
 
         function update() {
-            // プレイヤーの移動 (Y軸の中心を考慮)
+            // プレイヤーの移動 
             const playerHalfHeight = player.height / 2;
             const maxRight = canvas.width - player.width; 
             if (keys['ArrowUp'] || keys['KeyW']) player.y = Math.max(playerHalfHeight, player.y - player.speed); 
@@ -556,7 +577,6 @@
                 // SUPER HARDモードの敵のY軸移動
                 if (currentDifficulty === 'super-hard') {
                     e.y += e.vy;
-                    // 画面の上下端で反射
                     const enemyHalfHeight = e.height / 2;
                     if (e.y < enemyHalfHeight || e.y > canvas.height - enemyHalfHeight) {
                         e.vy *= -1;
@@ -581,9 +601,7 @@
 
             // 衝突判定と要素のフィルタリング (省略)
             
-            // ... (衝突判定とフィルタリングロジックは前述のコードと基本的に同じ)
-
-            // 敵弾 vs プレイヤーの体当たり
+            // 敵弾 vs プレイヤー
             enemyBullets = enemyBullets.filter(bullet => {
                 if (checkCollision(bullet, player)) {
                     updateHp(-1);
@@ -651,15 +669,9 @@
             });
             
             enemies.forEach(drawEnemy);
-            
-            // 4. 残り時間の描画 (見やすく)
-            ctx.fillStyle = '#FF00FF'; // マゼンタ
-            ctx.font = '36px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'top';
-            ctx.fillText(`TIME: ${timeLeft}`, canvas.width / 2, 10);
 
-            // 5. 称号の更新と次のフレームを要求
+            // 4. スコアと称号の更新
+            updateScoreDisplay(score);
             updateTitleDisplay(score);
             gameLoopId = requestAnimationFrame(gameLoop);
         }
